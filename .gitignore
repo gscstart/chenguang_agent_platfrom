@@ -84,6 +84,13 @@ Desktop.ini
 *.sqlite
 
 # ========================
+# Docker 数据卷
+# ========================
+docker/docker/mysql/data/
+docker/docker/redis_data/
+docker/docker/minio_data/
+
+# ========================
 # 其他
 # ========================
 *.log
