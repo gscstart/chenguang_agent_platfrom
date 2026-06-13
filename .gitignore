@@ -84,11 +84,18 @@ Desktop.ini
 *.sqlite
 
 # ========================
-# Docker 数据卷
+# Docker 数据卷（运行时生成）
 # ========================
-docker/docker/mysql/data/
-docker/docker/redis_data/
-docker/docker/minio_data/
+docker/mysql/data/
+docker/redis_data/
+docker/minio_data/
+
+# ========================
+# Alembic
+# ========================
+alembic/README
+alembic/__pycache__/
+alembic/versions/__pycache__/
 
 # ========================
 # 其他

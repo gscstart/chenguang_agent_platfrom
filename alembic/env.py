@@ -11,6 +11,7 @@ from alembic import context
 from src.core.config import get_settings
 
 # 导入 Base 和所有 Model（确保 Alembic 能发现表结构）
+import src.modules.user.model
 from src.core.base_model import Base
 # import src.modules.user.model  # noqa: F401  每新增模块在此导入
 
