@@ -10,6 +10,7 @@ class BizException(Exception):
         self.code = code
         self.message = message
 
+# 注册全局异常处理
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(BizException)
     async def biz_exception_handler(request: Request, exc: BizException):
@@ -18,6 +19,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             content={"code": exc.code, "message": exc.message, "data": None},
         )
 
+# 全局异常处理
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
         logger.exception(f"Unhandled exception: {exc}")
