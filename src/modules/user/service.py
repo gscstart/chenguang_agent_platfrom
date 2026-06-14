@@ -3,6 +3,7 @@ from src.core.exceptions import BizException
 from src.modules.user.model import User
 from src.modules.user.schema import UserCreate
 from src.modules.user.repository import UserRepository
+from src.utils.password_utils import hash_password
 
 
 # 业务逻辑层，类似 Java 的 UserService 加了 @Service + @Transactional
@@ -27,10 +28,15 @@ class UserService:
             email=data.email,
             # 注意：这里为了简化直接存明文，生产环境必须用 bcrypt 加密
             # 类似 passwordEncoder.encode(data.getPassword())
-            hashed_password=data.password,
+            hashed_password=hash_password(data.password),
         )
         # 持久化并返回，类似 userRepository.save(user)
         return await self.repo.create(user)
+
+    # 根据用户名查询用户，类似 findByUsername(String username)
+    # 返回 User | None，找不到时返回 None 而非抛异常（方便其他模块做灵活处理）
+    async def get_by_username(self, username: str) -> User | None:
+        return await self.repo.get_by_username(username)
 
     # 根据 ID 查询用户，类似 getUserById(Long id)
     # 找不到时抛业务异常，类似 throw new ResourceNotFoundException("用户不存在")

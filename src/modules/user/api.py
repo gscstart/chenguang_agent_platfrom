@@ -21,7 +21,7 @@ def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
 # POST /users —— 创建用户
 # response_model: 声明返回类型，FastAPI 会自动做序列化 + Swagger 文档生成
 # 类似 Spring 的 @PostMapping + @ResponseBody
-@router.post("", response_model=ResponseSchema[UserRead])
+@router.post("", response_model=ResponseSchema[UserRead], summary="创建用户")
 async def create_user(
     # data 参数：FastAPI 自动从请求体解析 JSON 并校验，类似 @RequestBody + @Valid
     data: UserCreate,
