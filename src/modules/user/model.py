@@ -1,6 +1,7 @@
-from sqlalchemy import String
+from sqlalchemy import String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from src.core.base_model import BaseModel
+from datetime import datetime
 
 
 # ORM 实体类，类似 Java 的 @Entity + @Table(name = "users")
@@ -22,3 +23,7 @@ class User(BaseModel):
     hashed_password: Mapped[str] = mapped_column(String(255), comment="密码哈希")
     # Mapped[bool]: 布尔类型字段，default=True 类似 @Column(nullable = false, defaultValue = "true")
     is_active: Mapped[bool] = mapped_column(default=True, comment="是否启用")
+    is_superuser: Mapped[bool] = mapped_column(
+        default=False, comment="是否为超级管理员")
+    last_login: Mapped[datetime | None] = mapped_column(
+        DateTime, comment="最后登录时间")

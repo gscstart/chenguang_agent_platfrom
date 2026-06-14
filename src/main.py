@@ -8,13 +8,14 @@ from src.core.exceptions import register_exception_handlers
 from src.core.logger import setup_logger
 from src.infra.database import engine
 from src.modules.user.api import router as user_router
+from src.modules.captcha.api import router as captcha_router
 
 
 # 使用上下文管理器感知项目生命周期
 # 项目关闭时执行销毁数据库连接池
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app: FastAPI):
     # 应用启动时执行
     # 配置日志组件
     setup_logger()
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
         title=settings.APP_NAME,
         version="1.0.0",
         debug=settings.APP_DEBUG,
+        lifespan=lifespan,  # 注册生命周期管理器
     )
 
     # 注册中间件
@@ -50,6 +52,7 @@ def create_app() -> FastAPI:
 
     # 注册路由
     app.include_router(user_router, prefix="/api/v1")
+    app.include_router(captcha_router, prefix="/api/v1")
 
     return app
 
