@@ -84,11 +84,13 @@ Desktop.ini
 *.sqlite
 
 # ========================
-# Docker 数据卷（运行时生成）
+# Docker 数据卷（运行时生成，禁止提交）
 # ========================
 docker/mysql/data/
 docker/redis_data/
 docker/minio_data/
+# 防止从项目根目录运行 docker compose 产生嵌套数据
+docker/docker/
 
 # ========================
 # Alembic

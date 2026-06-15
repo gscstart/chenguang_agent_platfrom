@@ -1,7 +1,6 @@
 """
 认证模块 - 业务逻辑层
 
-对应 Java: Service 层（@Service + @Transactional）
 职责: 处理登录认证流程，包括验证码校验、密码比对、JWT 签发
       ——通过 UserService 获取用户信息，不直接依赖 UserRepository（避免跨层调用）
 """
@@ -38,8 +37,6 @@ class AuthService:
         """
         用户登录，完整流程：验证码校验 → 查找用户 → 密码比对 → 账号状态检查 → 更新登录时间 → 签发 JWT。
 
-        对应 Java: public TokenResponse login(LoginRequest request)
-
         参数:
             data: 登录请求体
 
@@ -56,7 +53,7 @@ class AuthService:
         if not stored_code or stored_code != data.captcha_code.lower():
             raise BizException(code=400, message="验证码错误或已过期")
 
-        # 验证通过后删除，防止重复使用，类似 redisTemplate.delete(key)
+        # 验证通过后删除，防止重复使用
         await self.redis.delete(redis_key)
 
         # 2. 通过 UserService 查找用户（同层协作，不跨层调 Repository）
@@ -64,7 +61,7 @@ class AuthService:
         if not user:
             raise BizException(code=400, message="用户名或密码错误")
 
-        # 3. 校验密码，类似 passwordEncoder.matches(rawPassword, encodedPassword)
+        # 3. 校验密码
         if not verify_password(data.password, user.hashed_password):
             raise BizException(code=400, message="用户名或密码错误")
 
