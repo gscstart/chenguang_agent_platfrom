@@ -1,3 +1,5 @@
+from src.modules.user.model import User
+from src.core.deps import get_current_user
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.infra.database import get_db
@@ -33,9 +35,16 @@ async def create_user(
     return ResponseSchema(data=UserRead.model_validate(user))
 
 
+# GET /users/me —— 获取当前登录用户信息（需要 token）
+@router.get("/me", response_model=ResponseSchema[UserRead], summary="获取当前登录用户信息（需要 token）")
+async def get_me(current_user: User = Depends(get_current_user)):
+    """获取当前登录用户信息（需要 token）"""
+    return ResponseSchema(data=UserRead.model_validate(current_user))  # model_validate：属性对拷
+
+
 # GET /users/{user_id} —— 根据 ID 查询单个用户
 # {user_id} 是路径参数，类似 Spring 的 @PathVariable
-@router.get("/{user_id}", response_model=ResponseSchema[UserRead])
+@router.get("/{user_id}", response_model=ResponseSchema[UserRead], summary="根据 ID 查询单个用户")
 async def get_user(
     user_id: int,
     svc: UserService = Depends(get_user_service),
@@ -48,7 +57,7 @@ async def get_user(
 # offset/limit 是查询参数，类似 Spring 的 @RequestParam
 # 注意：路由顺序很重要！此接口必须定义在 /{user_id} 之后，
 # 否则 FastAPI 会把 "users/list" 中的 "list" 当成 user_id 解析
-@router.get("", response_model=ResponseSchema[list[UserRead]])
+@router.get("", response_model=ResponseSchema[list[UserRead]], summary="分页查询用户列表")
 async def list_users(
     offset: int = 0,        # 偏移量，默认 0
     limit: int = 100,       # 每页条数，默认 100

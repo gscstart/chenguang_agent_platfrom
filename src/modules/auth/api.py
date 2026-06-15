@@ -38,7 +38,7 @@ def get_auth_service(
 # ---------- 端点定义 ----------
 # 类似 Java: @PostMapping("/login")
 
-@router.post("/login", response_model=ResponseSchema[TokenResponse])
+@router.post("/login", response_model=ResponseSchema[TokenResponse], summary="用户登录")
 async def login(
     data: LoginRequest,
     svc: AuthService = Depends(get_auth_service),

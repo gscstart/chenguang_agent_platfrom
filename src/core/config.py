@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "DEBUG"
     LOG_DIR: str = "logs"
 
+    # 验证码开关：开发环境可关闭以方便测试，生产环境必须开启
+    CAPTCHA_ENABLED: bool = True
+
     @property
     def DATABASE_URL(self) -> str:
         return (

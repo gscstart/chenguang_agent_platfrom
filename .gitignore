@@ -30,6 +30,9 @@ htmlcov/
 celerybeat-schedule
 celerybeat.pid
 *.log
+.qoder
+.idea
+.vscode
 
 # ========================
 # React / Node.js

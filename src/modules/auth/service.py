@@ -8,6 +8,7 @@
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio import Redis
+from src.core.config import get_settings
 from src.core.exceptions import BizException
 from src.modules.user.service import UserService
 from src.modules.auth.schema import LoginRequest, TokenResponse
@@ -46,15 +47,17 @@ class AuthService:
         异常:
             BizException: 验证码错误/过期、用户名或密码错误、账号被禁用
         """
-        # 1. 验证验证码，类似 captchaService.validate(key, code)
-        redis_key = f"{CAPTCHA_PREFIX}{data.captcha_key}"
-        stored_code = await self.redis.get(redis_key)
+        # 1. 验证码校验（受配置开关控制，开发环境可关闭以方便测试）
+        settings = get_settings()
+        if settings.CAPTCHA_ENABLED:
+            redis_key = f"{CAPTCHA_PREFIX}{data.captcha_key}"
+            stored_code = await self.redis.get(redis_key)
 
-        if not stored_code or stored_code != data.captcha_code.lower():
-            raise BizException(code=400, message="验证码错误或已过期")
+            if not stored_code or stored_code != data.captcha_code.lower():
+                raise BizException(code=400, message="验证码错误或已过期")
 
-        # 验证通过后删除，防止重复使用
-        await self.redis.delete(redis_key)
+            # 验证通过后删除，防止重复使用
+            await self.redis.delete(redis_key)
 
         # 2. 通过 UserService 查找用户（同层协作，不跨层调 Repository）
         user = await self.user_service.get_by_username(data.username)
