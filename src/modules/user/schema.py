@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 
-from modules.role.schema import RoleRead
+from src.modules.role.schema import RoleRead
 
 
 # 请求体 DTO，类似 Java 的 UserCreateRequest / UserDTO

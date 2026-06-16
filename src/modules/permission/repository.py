@@ -18,3 +18,8 @@ class PermissionRepository(BaseRepository[Permission]):
         # 根据 ID 列表批量查询权限
         result = await self.db.scalars(select(Permission).filter(Permission.id.in_(permission_ids)))
         return result.all()
+
+    async def search_page(self, offset: int,
+                          limit: int,
+                          keyword: str | None) -> tuple[list[Permission], int]:
+        return await self.get_page(offset, limit, keyword, ['code', 'name'])

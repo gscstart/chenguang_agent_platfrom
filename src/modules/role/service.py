@@ -67,3 +67,6 @@ class RoleService:
         await self.repo.update(role)
         # 6. 返回更新后的 role（会自动带上新的 permissions）
         return role
+
+    async def search_page(self, offset: int, limit: int, keyword: str | None) -> tuple[list[Role], int]:
+        return await self.repo.search_page(offset, limit, keyword)

@@ -49,3 +49,6 @@ class PermissionService:
             raise BizException(code=403, message="权限不存在")
         # 2. 调用 repo.delete()
         return await self.repo.delete(permission)
+
+    async def search_page(self, offset: int, limit: int, keyword: str | None) -> tuple[list[Permission], int]:
+        return await self.repo.search_page(offset, limit, keyword)

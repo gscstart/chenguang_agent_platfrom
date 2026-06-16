@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from modules.role.repository import RoleRepository
+from src.modules.role.repository import RoleRepository
 from src.core.exceptions import BizException
 from src.modules.user.model import User
 from src.modules.user.schema import UserCreate
@@ -75,3 +75,8 @@ class UserService:
         user = await self.repo.get_by_id(user_id)
         # 因为 User.roles 设置了 lazy="selectin"，所以不需要额外操作
         return user
+
+    # 分页查询用户列表，类似 Page<User> findAll(Pageable pageable)
+    # 支持模糊查询，类似 findByUsernameContaining(String keyword)
+    async def search_page(self, offset: int, limit: int, keyword: str | None) -> tuple[list[User], int]:
+        return await self.repo.search_page(offset, limit, keyword)

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
-from src.core.base_schema import ResponseSchema
+from src.core.base_schema import ResponseSchema, PageResult
+from src.core.deps import PageParams
 from src.infra.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.modules.permission.schema import PermissionCreate, PermissionRead, PermissionUpdate
@@ -10,11 +11,26 @@ router = APIRouter(prefix="/permissions", tags=["权限"])
 def get_permission_service(db: AsyncSession = Depends(get_db)) -> PermissionService:
     return PermissionService(db)
 
+# 分页搜索
+@router.get("/search", response_model=ResponseSchema[PageResult[PermissionRead]], summary="分页搜索权限")
+
+async def search_permissions(service: PermissionService = Depends(get_permission_service),
+                             params: PageParams = Depends()):
+    """分页搜索权限"""
+    permissions, total = await service.search_page(params.offset, params.page, params.keyword)
+
+    # 将 ORM 模型列表转换为 Pydantic 响应 schema
+    permissions = [PermissionRead.model_validate(p) for p in permissions]
+
+    return ResponseSchema(data=PageResult(items=permissions, total=total, page=params.page, page_size=params.page_size))
+
+
 @router.get("/{permission_id}", response_model=ResponseSchema[PermissionRead], summary="根据 ID 获取权限详情")
 async def get_permission(permission_id: int, service: PermissionService = Depends(get_permission_service)):
     """根据 ID 获取权限"""
     permission = await service.get_permission(permission_id)
     return ResponseSchema(data=PermissionRead.model_validate(permission))
+
 
 @router.get("/", response_model=ResponseSchema[list[PermissionRead]], summary="获取所有权限列表")
 async def list_permissions(service: PermissionService = Depends(get_permission_service)):
