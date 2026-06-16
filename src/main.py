@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
-from sys import version
-from venv import logger
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 from src.core.config import get_settings
 from src.middlewares.logging import LoggingMiddleware
 from src.core.exceptions import register_exception_handlers
@@ -49,6 +49,13 @@ def create_app() -> FastAPI:
 
     # 注册中间件
     app.add_middleware(LoggingMiddleware)
+    # 注册CORS跨域中间件
+    app.add_middleware(CORSMiddleware,
+                       allow_origins=["*"],
+                       allow_credentials=True,
+                       allow_methods=["*"],
+                       allow_headers=["*"],
+                       )
 
     # 注册异常处理器
     register_exception_handlers(app)
@@ -61,8 +68,9 @@ def create_app() -> FastAPI:
     app.include_router(role_router, prefix="/api/v1")
 
     return app
-app = create_app()
 
+
+app = create_app()
 
 
 # 健康检查路由

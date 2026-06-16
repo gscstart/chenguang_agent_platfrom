@@ -1,6 +1,13 @@
-import type { PaginatedResponse } from '../types/common';
 import type { User, Role, ApiKey, AuditLog, SystemAlert, SystemSettings } from '../types/system';
 import { mockUsers, mockRoles, mockApiKeys, mockAuditLogs, mockSystemAlerts, mockSystemSettings, mockPermissions } from './data/system';
+
+/** Mock 内部分页返回格式（与页面组件兼容，不依赖 PaginatedResponse 严格类型） */
+interface MockPageResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 
 export const mockSystemService = {
   // 用户管理
@@ -10,7 +17,7 @@ export const mockSystemService = {
     search?: string;
     role?: string;
     status?: string;
-  }): Promise<PaginatedResponse<User>> {
+  }): Promise<MockPageResult<User>> {
     let filtered = [...mockUsers];
 
     if (params?.search) {
@@ -24,7 +31,7 @@ export const mockSystemService = {
     }
 
     if (params?.role) {
-      filtered = filtered.filter((u) => u.role === params.role);
+      filtered = filtered.filter((u) => (u as unknown as { role?: string }).role === params.role);
     }
 
     if (params?.status) {
@@ -51,16 +58,19 @@ export const mockSystemService = {
   },
 
   async createUser(data: Partial<User>): Promise<User> {
+    const extra = data as unknown as { role?: string; department?: string };
     const newUser: User = {
       id: `user-${Date.now()}`,
       username: data.username || '',
       email: data.email || '',
       name: data.name || '',
       avatar: data.avatar || '',
-      role: data.role || 'viewer',
+      roleId: extra.role || 'viewer',
+      roleName: extra.role || 'viewer',
       status: 'active',
-      department: data.department || '',
+      lastLoginAt: '',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     return newUser;
   },
@@ -70,8 +80,8 @@ export const mockSystemService = {
     return { ...user, ...data };
   },
 
-  async deleteUser(id: string): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  async deleteUser(id: string | number): Promise<void> {
+    // mock：仅模拟删除成功，不实际操作数据
   },
 
   // 角色管理
@@ -79,7 +89,7 @@ export const mockSystemService = {
     return mockRoles;
   },
 
-  async getRolesPaged(params?: { page?: number; pageSize?: number; keyword?: string }): Promise<PaginatedResponse<Role>> {
+  async getRolesPaged(params?: { page?: number; pageSize?: number; keyword?: string }): Promise<MockPageResult<Role>> {
     let filtered = [...mockRoles];
     if (params?.keyword) {
       const kw = params.keyword.toLowerCase();
@@ -102,16 +112,21 @@ export const mockSystemService = {
   },
 
   async createRole(data: Partial<Role>): Promise<Role> {
+    const extra = data as unknown as { displayName?: string };
     const newRole: Role = {
       id: `role-${Date.now()}`,
       name: data.name || '',
-      displayName: data.displayName || '',
       description: data.description || '',
       permissions: data.permissions || [],
       userCount: 0,
+      isSystem: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    // displayName 是 mock 数据扩展字段，合并到 description 以便搜索
+    if (extra.displayName) {
+      newRole.description = `${extra.displayName} - ${newRole.description}`;
+    }
     return newRole;
   },
 
@@ -120,7 +135,7 @@ export const mockSystemService = {
     return { ...role, ...data, updatedAt: new Date().toISOString() };
   },
 
-  async deleteRole(id: string): Promise<void> {
+  async deleteRole(_id: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 500));
   },
 
@@ -129,7 +144,7 @@ export const mockSystemService = {
     page?: number;
     pageSize?: number;
     status?: string;
-  }): Promise<PaginatedResponse<ApiKey>> {
+  }): Promise<MockPageResult<ApiKey>> {
     let filtered = [...mockApiKeys];
 
     if (params?.status) {
@@ -154,17 +169,18 @@ export const mockSystemService = {
       id: `key-${Date.now()}`,
       name: data.name || '',
       key: `sk-${Math.random().toString(36).substring(2, 15)}`,
+      permissions: (data.permissions as ApiKey['permissions']) || 'readonly',
       status: 'active',
-      permissions: data.permissions || [],
       rateLimit: data.rateLimit || 100,
-      usageCount: 0,
-      createdAt: new Date().toISOString(),
+      callCount: 0,
+      lastUsedAt: '',
       createdBy: 'current-user',
+      createdAt: new Date().toISOString(),
     };
     return newKey;
   },
 
-  async deleteApiKey(id: string): Promise<void> {
+  async deleteApiKey(_id: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 500));
   },
 
@@ -176,7 +192,7 @@ export const mockSystemService = {
     action?: string;
     startDate?: string;
     endDate?: string;
-  }): Promise<PaginatedResponse<AuditLog>> {
+  }): Promise<MockPageResult<AuditLog>> {
     let filtered = [...mockAuditLogs];
 
     if (params?.userId) {
@@ -218,11 +234,11 @@ export const mockSystemService = {
     return filtered;
   },
 
-  async acknowledgeAlert(id: string): Promise<void> {
+  async acknowledgeAlert(_id: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 500));
   },
 
-  async resolveAlert(id: string): Promise<void> {
+  async resolveAlert(_id: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 500));
   },
 
@@ -241,7 +257,7 @@ export const mockSystemService = {
     return mockPermissions;
   },
 
-  async getPermissionsPaged(params?: { page?: number; pageSize?: number; keyword?: string }) {
+  async getPermissionsPaged(params?: { page?: number; pageSize?: number; keyword?: string }): Promise<MockPageResult<{ id: string; code: string; name: string; description: string | null }>> {
     let filtered = [...mockPermissions];
     if (params?.keyword) {
       const kw = params.keyword.toLowerCase();
@@ -267,7 +283,7 @@ export const mockSystemService = {
     return { ...perm, ...data };
   },
 
-  async deletePermission(id: string): Promise<void> {
+  async deletePermission(_id: string): Promise<void> {
     await new Promise(r => setTimeout(r, 300));
   },
 };

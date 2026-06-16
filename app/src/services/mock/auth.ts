@@ -5,8 +5,12 @@ import { tokenStorage } from '../api/client'
 export const mockAuthService = {
   async getCaptcha(): Promise<CaptchaResponse> {
     await new Promise((r) => setTimeout(r, 200))
-    // 返回一个固定 key，mock 模式下登录时不校验验证码
     return { key: 'mock-captcha-key', image: '' }
+  },
+
+  async verifyCaptcha(_key: string, _code: string): Promise<boolean> {
+    // mock 模式下始终返回验证通过
+    return true
   },
 
   async login(data: LoginRequest): Promise<TokenResponse> {

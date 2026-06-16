@@ -38,11 +38,10 @@ async def create_user(
 
 # 分页搜索
 @router.get("/search", response_model=ResponseSchema[PageResult[UserRead]], summary="分页搜索用户")
-
 async def search_users(service: UserService = Depends(get_user_service),
-                             params: PageParams = Depends()):
+                       params: PageParams = Depends()):
     """分页搜索用户"""
-    users, total = await service.search_page(params.offset, params.page, params.keyword)
+    users, total = await service.search_page(params.offset, params.page_size, params.keyword)
     # 将 ORM 模型列表转换为 Pydantic 响应 schema
     users = [UserRead.model_validate(p) for p in users]
 
@@ -91,6 +90,7 @@ async def assign_roles_to_user(
     user = await svc.assign_roles(user_id, role_ids)
     return ResponseSchema(data=UserWithRolesRead.model_validate(user))
 
+
 # GET   /api/v1/users/{user_id}/roles   查看用户的角色列表
 @router.get("/{user_id}/roles", response_model=ResponseSchema[list[RoleRead]], summary="查看用户的角色列表")
 async def get_user_roles(
@@ -101,3 +101,14 @@ async def get_user_roles(
     if user.roles:
         return ResponseSchema(data=[RoleRead.model_validate(role) for role in user.roles])
     return ResponseSchema(data=[])
+
+
+# DELETE /api/v1/users/{user_id}  删除用户
+@router.delete("/{user_id}", response_model=ResponseSchema, summary="删除用户")
+async def delete_user(
+    user_id: int,
+    svc: UserService = Depends(get_user_service),
+):
+    """根据 ID 删除用户"""
+    await svc.delete_user(user_id)
+    return ResponseSchema(message="删除成功")

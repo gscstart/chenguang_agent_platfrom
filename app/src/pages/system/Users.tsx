@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Plus, Trash2, ShieldCheck } from 'lucide-react'
+import { Search, Plus, ShieldCheck, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,10 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import Pagination from '@/components/Pagination'
 import { USE_MOCK } from '@/services/config'
 import { apiSystemService } from '@/services/api/system'
@@ -145,10 +141,10 @@ export default function SystemUsers() {
   const [page, setPage] = useState(1)
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null)
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignUserId, setAssignUserId] = useState<number | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -173,12 +169,19 @@ export default function SystemUsers() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return
+    setDeleting(true)
     try {
-      if (USE_MOCK) await mockSystemService.deleteUser(String(deleteTarget.id))
-      else await apiSystemService.deleteUser(deleteTarget.id as number)
+      if (USE_MOCK) {
+        await mockSystemService.deleteUser(deleteTarget.id)
+      } else {
+        await apiSystemService.deleteUser(deleteTarget.id as number)
+      }
+      setDeleteTarget(null)
       load()
-    } catch (err) { console.error(err) }
-    finally { setDeleteOpen(false); setDeleteTarget(null) }
+    } catch (err) {
+      console.error(err)
+      alert(err instanceof Error ? err.message : '删除失败')
+    } finally { setDeleting(false) }
   }
 
   const activeCount = users.filter(u => u.isActive).length
@@ -247,15 +250,18 @@ export default function SystemUsers() {
                   <TableCell>
                     <div className="flex items-center gap-1">
                       {!USE_MOCK && (
-                        <Button variant="ghost" size="sm" title="分配角色"
-                          onClick={() => { setAssignUserId(u.id as number); setAssignOpen(true) }}>
-                          <ShieldCheck className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="sm" title="分配角色"
+                            onClick={() => { setAssignUserId(u.id as number); setAssignOpen(true) }}>
+                            <ShieldCheck className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="删除用户"
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => setDeleteTarget(u)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
-                      <Button variant="ghost" size="sm" title="删除"
-                        onClick={() => { setDeleteTarget(u); setDeleteOpen(true) }}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -270,20 +276,25 @@ export default function SystemUsers() {
       <AssignRolesDialog open={assignOpen} userId={assignUserId}
         onClose={() => setAssignOpen(false)} onSaved={load} />
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>
-              确定要删除用户「{deleteTarget?.username}」吗？此操作无法撤销。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">删除</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* 删除确认弹窗 */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <Card className="w-full max-w-sm shadow-2xl">
+            <CardHeader><CardTitle>确认删除</CardTitle></CardHeader>
+            <CardContent>
+              <p className="mb-4 text-muted-foreground">
+                确定要删除用户 <span className="font-semibold text-foreground">{deleteTarget.username}</span> 吗？此操作不可撤销。
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>取消</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? '删除中...' : '确认删除'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

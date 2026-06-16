@@ -305,13 +305,19 @@ async def search(params: PageParams = Depends()):
 
 ### 4.4 已实现的后端 API
 
-| 模块 | 前缀 | 端点 |
-|------|------|------|
-| 认证 | `/api/v1/auth` | `POST /login` |
-| 验证码 | `/api/v1/captcha` | `GET /`, `POST /verify` |
-| 用户 | `/api/v1/users` | `POST /`, `GET /search`, `GET /me`, `GET /{id}`, `GET /`, `PUT /{id}/roles`, `GET /{id}/roles` |
-| 角色 | `/api/v1/roles` | CRUD + 分页 + 权限分配 |
-| 权限 | `/api/v1/permissions` | CRUD + 分页 |
+| 模块 | 前缀 | 端点 | 前端对接状态 |
+|------|------|------|-------------|
+| 认证 | `/api/v1/auth` | `POST /login` | ✅ 已对接 |
+| 验证码 | `/api/v1/captcha` | `GET /`, `POST /verify` | ✅ 已对接 |
+| 用户 | `/api/v1/users` | `POST /`, `GET /search`, `GET /me`, `GET /{id}`, `GET /`, `PUT /{id}/roles`, `GET /{id}/roles` | ✅ 已对接（无 DELETE 端点） |
+| 角色 | `/api/v1/roles` | `GET /`, `POST /`, `GET /search`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`, `PUT /{id}/permissions` | ✅ 已对接 |
+| 权限 | `/api/v1/permissions` | `GET /`, `POST /`, `GET /search`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` | ✅ 已对接 |
+| 健康检查 | `/health` | `GET /` | N/A |
+
+**前端 API 服务文件对应关系：**
+- `services/api/auth.ts` — 认证 + 验证码
+- `services/api/system.ts` — 用户 + 角色 + 权限
+- `services/api/client.ts` — 统一 HTTP 客户端（token 自动注入、401 自动跳转）
 
 ### 4.5 数据库模型关系（RBAC）
 
@@ -597,21 +603,22 @@ npx shadcn@latest add {component-name}
 
 ### 8.3 当前开发状态
 
-| 模块 | 后端 API | 前端页面 | 说明 |
-|------|---------|---------|------|
-| 认证/登录 | ✅ 已实现 | ✅ 已实现 | JWT 登录 + 验证码 |
-| 用户管理 | ✅ 已实现 | ✅ 已实现 | CRUD + 角色分配 |
-| 角色管理 | ✅ 已实现 | ✅ 已实现 | CRUD + 权限分配 |
-| 权限管理 | ✅ 已实现 | ✅ 已实现 | CRUD |
-| 验证码 | ✅ 已实现 | ✅ 已实现 | 图形验证码 + Redis |
-| Agent 管理 | ❌ 未实现 | ✅ Mock | 前端页面已搭建 |
-| 模型管理 | ❌ 未实现 | ✅ Mock | 前端页面已搭建 |
-| Prompt 管理 | ❌ 未实现 | ✅ Mock | 前端页面已搭建 |
-| 知识库 | ❌ 未实现 | ✅ Mock | 前端页面已搭建 |
-| 工具管理 | ❌ 未实现 | ✅ Mock | 前端页面已搭建 |
-| 对话日志 | ❌ 未实现 | ✅ Mock | 前端页面已搭建 |
-| 数据统计 | ❌ 未实现 | ✅ Mock | 前端页面已搭建 |
-| 系统管理（其他） | 部分实现 | ✅ Mock | 用户/角色/权限已实现 |
+| 模块 | 后端 API | 前端页面 | 前端 API 对接 | 说明 |
+|------|---------|---------|-------------|------|
+| 认证/登录 | ✅ 已实现 | ✅ 已实现 | ✅ 已对接 | JWT 登录 + 验证码 |
+| 个人资料 | ✅ 已实现 | ✅ 已实现 | ✅ 已对接 | Profile 页通过 `/users/me` 加载当前用户 |
+| 用户管理 | ✅ 已实现 | ✅ 已实现 | ✅ 已对接 | 创建 + 搜索 + 角色分配（后端无 DELETE 端点） |
+| 角色管理 | ✅ 已实现 | ✅ 已实现 | ✅ 已对接 | CRUD + 搜索 + 权限分配 |
+| 权限管理 | ✅ 已实现 | ✅ 已实现 | ✅ 已对接 | CRUD + 搜索 |
+| 验证码 | ✅ 已实现 | ✅ 已实现 | ✅ 已对接 | 图形验证码 + Redis + verify 接口 |
+| Agent 管理 | ❌ 未实现 | ✅ Mock | ❌ 待对接 | 前端页面已搭建 |
+| 模型管理 | ❌ 未实现 | ✅ Mock | ❌ 待对接 | 前端页面已搭建 |
+| Prompt 管理 | ❌ 未实现 | ✅ Mock | ❌ 待对接 | 前端页面已搭建 |
+| 知识库 | ❌ 未实现 | ✅ Mock | ❌ 待对接 | 前端页面已搭建 |
+| 工具管理 | ❌ 未实现 | ✅ Mock | ❌ 待对接 | 前端页面已搭建 |
+| 对话日志 | ❌ 未实现 | ✅ Mock | ❌ 待对接 | 前端页面已搭建 |
+| 数据统计 | ❌ 未实现 | ✅ Mock | ❌ 待对接 | 前端页面已搭建 |
+| 系统管理（其他） | 部分实现 | ✅ Mock | 部分对接 | 用户/角色/权限已对接，API密钥/审计/告警/设置待对接 |
 
 ---
 

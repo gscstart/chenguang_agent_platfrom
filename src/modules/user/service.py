@@ -80,3 +80,11 @@ class UserService:
     # 支持模糊查询，类似 findByUsernameContaining(String keyword)
     async def search_page(self, offset: int, limit: int, keyword: str | None) -> tuple[list[User], int]:
         return await self.repo.search_page(offset, limit, keyword)
+
+    # 根据 ID 删除用户，类似 deleteUserById(Long id)
+    # 找不到时抛业务异常，类似 throw new ResourceNotFoundException("用户不存在")
+    async def delete_user(self, user_id: int) -> None:
+        user = await self.repo.get_by_id(user_id)
+        if not user:
+            raise BizException(code=404, message="用户不存在")
+        await self.repo.delete(user)

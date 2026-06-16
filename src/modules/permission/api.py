@@ -8,16 +8,18 @@ from src.modules.permission.service import PermissionService
 
 router = APIRouter(prefix="/permissions", tags=["权限"])
 
+
 def get_permission_service(db: AsyncSession = Depends(get_db)) -> PermissionService:
     return PermissionService(db)
 
 # 分页搜索
-@router.get("/search", response_model=ResponseSchema[PageResult[PermissionRead]], summary="分页搜索权限")
 
+
+@router.get("/search", response_model=ResponseSchema[PageResult[PermissionRead]], summary="分页搜索权限")
 async def search_permissions(service: PermissionService = Depends(get_permission_service),
                              params: PageParams = Depends()):
     """分页搜索权限"""
-    permissions, total = await service.search_page(params.offset, params.page, params.keyword)
+    permissions, total = await service.search_page(params.offset, params.page_size, params.keyword)
 
     # 将 ORM 模型列表转换为 Pydantic 响应 schema
     permissions = [PermissionRead.model_validate(p) for p in permissions]
@@ -38,24 +40,26 @@ async def list_permissions(service: PermissionService = Depends(get_permission_s
     permissions = await service.list_permissions()
     return ResponseSchema(data=[PermissionRead.model_validate(p) for p in permissions])
 
+
 @router.post("/", response_model=ResponseSchema[PermissionRead], summary="创建权限")
 async def create_permission(data: PermissionCreate,
-service: PermissionService = Depends(get_permission_service)):
+                            service: PermissionService = Depends(get_permission_service)):
     """创建权限"""
     permission = await service.create_permission(data)
     return ResponseSchema(data=PermissionRead.model_validate(permission))
 
+
 @router.put("/{permission_id}", response_model=ResponseSchema[PermissionRead], summary="更新权限")
 async def update_permission(permission_id: int, data: PermissionUpdate,
-service: PermissionService = Depends(get_permission_service)):
+                            service: PermissionService = Depends(get_permission_service)):
     """更新权限"""
     permission = await service.update_permission(permission_id, data)
     return ResponseSchema(data=PermissionRead.model_validate(permission))
 
+
 @router.delete("/{permission_id}", response_model=ResponseSchema[None], summary="删除权限")
 async def delete_permission(permission_id: int,
-service: PermissionService = Depends(get_permission_service)):
+                            service: PermissionService = Depends(get_permission_service)):
     """删除权限"""
     await service.delete_permission(permission_id)
     return ResponseSchema(data=None)
-
