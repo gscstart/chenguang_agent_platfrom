@@ -1,7 +1,11 @@
+from typing import List
+
 from sqlalchemy import String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.base_model import BaseModel
 from datetime import datetime
+from src.modules.role.model import Role
+from src.modules.role.model import user_roles
 
 
 # ORM 实体类，类似 Java 的 @Entity + @Table(name = "users")
@@ -27,3 +31,8 @@ class User(BaseModel):
         default=False, comment="是否为超级管理员")
     last_login: Mapped[datetime | None] = mapped_column(
         DateTime, comment="最后登录时间")
+    # 拿到所有用户的角色
+    roles: Mapped[list["Role"]] = relationship(
+        secondary=user_roles,
+        lazy="selectin",
+    )

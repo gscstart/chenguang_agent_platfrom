@@ -1,10 +1,8 @@
 import asyncio
 from logging.config import fileConfig
-
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
 from alembic import context
 
 # 加载 .env 配置
@@ -12,8 +10,13 @@ from src.core.config import get_settings
 
 # 导入 Base 和所有 Model（确保 Alembic 能发现表结构）
 import src.modules.user.model
-from src.core.base_model import Base
 # import src.modules.user.model  # noqa: F401  每新增模块在此导入
+from src.core.base_model import Base
+import src.modules.permission.model  # noqa: F401
+import src.modules.role.model  # noqa: F401
+import src.modules.user.model  # noqa: F401
+
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
