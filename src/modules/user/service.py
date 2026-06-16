@@ -1,4 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from modules.role.repository import RoleRepository
 from src.core.exceptions import BizException
 from src.modules.user.model import User
 from src.modules.user.schema import UserCreate
@@ -13,6 +15,7 @@ class UserService:
     # Python 没有自动依赖注入框架，所以通过构造函数手动传递
     def __init__(self, db: AsyncSession):
         self.repo = UserRepository(db)
+        self.role_repo = RoleRepository(db)
 
     # 创建用户，类似 createUser(@Valid UserCreateRequest request)
     async def create_user(self, data: UserCreate) -> User:
@@ -43,9 +46,32 @@ class UserService:
     async def get_user(self, user_id: int) -> User:
         user = await self.repo.get_by_id(user_id)
         if not user:
-            raise BizException(code=404, message="用户不存在")
+            raise BizException(code=401, message="用户不存在")
         return user
 
     # 分页查询用户列表，类似 Page<User> findAll(Pageable pageable)
     async def list_users(self, offset: int = 0, limit: int = 100):
         return await self.repo.get_all(offset=offset, limit=limit)
+
+    async def assign_roles(self, user_id: int, role_ids: list[int]) -> User:
+        # 1. 查找用户，不存在抛异常
+        user = await self.repo.get_by_id(user_id)
+        if not user:
+            raise BizException(code=401, message="用户不存在")
+        # 2. 通过 RoleRepository.get_by_ids(role_ids) 批量查询角色
+        role_list = await self.role_repo.get_by_ids(role_ids)
+        # 3. 校验数量是否匹配
+        if len(role_list) != len(role_ids):
+            raise BizException(code=400, message="角色 ID 列表中包含无效 ID")
+        # 4. user.roles = role_list（整体替换）
+        user.roles = role_list
+        # 5. flush + refresh
+        await self.repo.update(user)
+        # 6. 返回 user
+        return user
+
+    async def get_user_with_roles(self, user_id: int) -> User:
+        # 和 get_user 一样，但返回的 User 对象会自动带上 roles
+        user = await self.repo.get_by_id(user_id)
+        # 因为 User.roles 设置了 lazy="selectin"，所以不需要额外操作
+        return user

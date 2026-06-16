@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr
 
+from modules.role.schema import RoleRead
+
 
 # 请求体 DTO，类似 Java 的 UserCreateRequest / UserDTO
 # Pydantic BaseModel 自动做字段校验，类似 @Valid + Bean Validation
@@ -22,3 +24,14 @@ class UserRead(BaseModel):
     # 没有这个配置，model_validate(user) 会报错，因为默认只接受 dict
     # 相当于告诉 Pydantic: "可以用 user.username 这种属性访问方式来填充字段"
     model_config = {"from_attributes": True}
+
+class UserWithRolesRead(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_active: bool
+    roles: list[RoleRead] = []     # 从 role 模块导入 RoleRead
+    model_config = {"from_attributes": True}
+
+class UserAssignRoles(BaseModel):
+    role_ids: list[int]

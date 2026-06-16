@@ -1,16 +1,17 @@
+from modules.role.schema import RoleRead
 from src.modules.user.model import User
 from src.core.deps import get_current_user
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.infra.database import get_db
 from src.core.base_schema import ResponseSchema
-from src.modules.user.schema import UserCreate, UserRead
+from src.modules.user.schema import UserCreate, UserRead, UserWithRolesRead
 from src.modules.user.service import UserService
 
 # 创建路由实例，类似 Spring MVC 的 @RequestMapping("/users")
 # prefix: 所有接口的公共路径前缀
 # tags: 在 Swagger 文档中对该模块接口进行分组显示
-router = APIRouter(prefix="/users", tags=["User"])
+router = APIRouter(prefix="/users", tags=["用户"])
 
 
 # FastAPI 的依赖注入函数，类似 Spring 的 @Autowired
@@ -44,13 +45,13 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 # GET /users/{user_id} —— 根据 ID 查询单个用户
 # {user_id} 是路径参数，类似 Spring 的 @PathVariable
-@router.get("/{user_id}", response_model=ResponseSchema[UserRead], summary="根据 ID 查询单个用户")
+@router.get("/{user_id}", response_model=ResponseSchema[UserWithRolesRead], summary="根据 ID 查询单个用户")
 async def get_user(
     user_id: int,
     svc: UserService = Depends(get_user_service),
 ):
     user = await svc.get_user(user_id)
-    return ResponseSchema(data=UserRead.model_validate(user))
+    return ResponseSchema(data=UserWithRolesRead.model_validate(user))
 
 
 # GET /users —— 分页查询用户列表
@@ -65,3 +66,25 @@ async def list_users(
 ):
     users = await svc.list_users(offset, limit)
     return ResponseSchema(data=[UserRead.model_validate(u) for u in users])
+
+
+# PUT   /api/v1/users/{user_id}/roles   给用户分配角色
+@router.put("/{user_id}/roles", response_model=ResponseSchema[UserWithRolesRead], summary="给用户分配角色")
+async def assign_roles_to_user(
+    user_id: int,
+    role_ids: list[int],
+    svc: UserService = Depends(get_user_service),
+):
+    user = await svc.assign_roles(user_id, role_ids)
+    return ResponseSchema(data=UserWithRolesRead.model_validate(user))
+
+# GET   /api/v1/users/{user_id}/roles   查看用户的角色列表
+@router.get("/{user_id}/roles", response_model=ResponseSchema[list[RoleRead]], summary="查看用户的角色列表")
+async def get_user_roles(
+    user_id: int,
+    svc: UserService = Depends(get_user_service),
+):
+    user = await svc.get_user_with_roles(user_id)
+    if user.roles:
+        return ResponseSchema(data=[RoleRead.model_validate(role) for role in user.roles])
+    return ResponseSchema(data=[])

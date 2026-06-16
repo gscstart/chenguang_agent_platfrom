@@ -17,7 +17,7 @@ from src.modules.user.service import UserService
 from src.infra.redis_cache import get_redis_client
 
 # 路由实例，类似 Java 中 @RequestMapping("/auth")
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter(prefix="/auth", tags=["认证"])
 
 
 # ---------- 依赖注入工厂 ----------
