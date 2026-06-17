@@ -12,7 +12,7 @@ from src.modules.captcha.api import router as captcha_router
 from src.modules.auth.api import router as auth_router
 from src.modules.permission.api import router as permission_router
 from src.modules.role.api import router as role_router
-
+from src.infra.minio_client import ensure_bucket_exists
 
 # 使用上下文管理器感知项目生命周期
 # 项目关闭时执行销毁数据库连接池
@@ -25,7 +25,11 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info(
         f"{settings.APP_NAME}Starting up... | 使用环境: {settings.APP_ENV}")
-
+    # 确保MinIO桶存在
+    try:
+        ensure_bucket_exists(settings.MINIO_BUCKET)
+    except Exception as e:
+        logger.error(f"Failed to ensure bucket exists: {e}")
     yield
     # 应用关闭时执行
     # 关闭数据库连接池
