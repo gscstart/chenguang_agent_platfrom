@@ -1,7 +1,9 @@
-from core.config import get_settings, settings
+from src.core.config import get_settings
 from minio import Minio
 from io import BytesIO
 
+from src.core import logger
+from src.middlewares import logging
 
 # 获取配置
 settings = get_settings()
@@ -37,7 +39,7 @@ def create_bucket(bucket_name: str) -> None:
     _minio_client.make_bucket(bucket_name)
 
 # 上传文件到minio
-def upload_file_to_minio(object_name: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+def upload_file(object_name: str, data: bytes, content_type: str = "application/octet-stream") -> str:
     """
         上传文件到minio
         :param object_name: 对象名
@@ -53,7 +55,7 @@ def upload_file_to_minio(object_name: str, data: bytes, content_type: str = "app
 
 
 # 下载文件从minio
-def download_file_from_minio(object_name: str) -> bytes:
+def download_file(object_name: str) -> bytes:
     """
         下载文件从minio
         :param object_name: 对象名
@@ -61,6 +63,20 @@ def download_file_from_minio(object_name: str) -> bytes:
     response = _minio_client.get_object(bucket_name=settings.MINIO_BUCKET, object_name=object_name).read()
     try:
         return response.read()
+    except Exception as e:
+        logger.error(e)
+        raise e
     finally:
+        # 关闭响应
         response.close()
+        # 释放连接
         response.release_conn()
+
+# 删除文件从minio
+def delete_file(object_name: str) -> None:
+    """
+        删除文件从minio
+        :param object_name: 对象名
+    """
+    _minio_client.remove_object(bucket_name=settings.MINIO_BUCKET, object_name=object_name)
+
