@@ -72,9 +72,8 @@ class ProviderService:
 
     async def delete_provider(self, provider_id: int) -> None:
         """删除供应商"""
-        # 先确认存在
-        await self.get_provider(provider_id)
-        await self.repo.delete_by_id(provider_id)
+        provider = await self.get_provider(provider_id)
+        await self.repo.delete(provider)
 
     async def test_connection(self, provider_id: int) -> dict:
         """测试供应商连接"""

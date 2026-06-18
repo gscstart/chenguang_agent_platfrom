@@ -62,6 +62,10 @@ export const mockModelService = {
 
   async testProviderConnection(id: number): Promise<Record<string, any>> {
     await delay(1000);
+    const idx = mockProviders.findIndex(p => p.id === id);
+    if (idx !== -1) {
+      mockProviders[idx] = { ...mockProviders[idx], status: 'connected' };
+    }
     return { success: true, message: '连接成功', latency_ms: 120 };
   },
 
