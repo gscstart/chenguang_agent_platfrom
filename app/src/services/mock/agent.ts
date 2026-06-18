@@ -83,11 +83,10 @@ export const mockAgentService = {
     ];
   },
 
-  async rollbackAgent(id: number, version: string): Promise<AgentRead> {
+  async rollbackAgent(id: number, version_id: number): Promise<AgentRead> {
     await delay(300);
     const agent = mockAgents.find(a => a.id === id);
     if (!agent) throw new Error('Agent not found');
-    agent.version = version;
     return agent;
   },
 };

@@ -35,7 +35,7 @@ export default function AgentVersions() {
     if (!confirm(`确认回滚到版本 ${version}？`)) return;
     try {
       setRolling(versionId);
-      await agentService.rollbackAgent(Number(id), version);
+      await agentService.rollbackAgent(Number(id), versionId);
       await loadVersions();
     } catch (error) {
       console.error('回滚失败:', error);

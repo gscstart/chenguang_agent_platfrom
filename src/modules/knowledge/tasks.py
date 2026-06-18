@@ -2,7 +2,7 @@ import uuid
 import logging
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.infra.database import async_session_factory
+from src.infra.database import AsyncSessionLocal
 from src.modules.knowledge.model import Document, Segment
 from src.infra.minio_client import download_file, delete_file as minio_delete
 
@@ -15,7 +15,7 @@ async def process_document(doc_id: int) -> None:
 
     由 FastAPI BackgroundTasks 调用，在后台执行。
     """
-    async with async_session_factory() as db:
+    async with AsyncSessionLocal() as db:
         try:
             await _do_process(db, doc_id)
         except Exception as e:

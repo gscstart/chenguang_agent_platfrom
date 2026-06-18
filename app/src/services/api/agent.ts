@@ -71,7 +71,7 @@ export const apiAgentService = {
     return apiClient.get(`/agents/${id}/versions`);
   },
 
-  async rollbackAgent(id: number, version: string): Promise<AgentRead> {
-    return apiClient.post(`/agents/${id}/rollback`, { version });
+  async rollbackAgent(id: number, version_id: number): Promise<AgentRead> {
+    return apiClient.post(`/agents/${id}/rollback`, { version_id });
   },
 };

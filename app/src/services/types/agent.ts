@@ -1,3 +1,30 @@
+/** @deprecated 使用 services/api/agent 中的 AgentRead / AgentVersionRead */
+export interface AgentRead {
+  id: number;
+  name: string;
+  description: string | null;
+  type: string;
+  status: string;
+  model_id: number | null;
+  config: Record<string, any> | null;
+  success_rate: number;
+  call_count_7d: number;
+  version: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentVersionRead {
+  id: number;
+  agent_id: number;
+  version: string;
+  config: Record<string, any> | null;
+  changelog: string | null;
+  is_current: boolean;
+  published_by: string | null;
+  published_at: string | null;
+}
 export interface Agent {
   id: string
   name: string

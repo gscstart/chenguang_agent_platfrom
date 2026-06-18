@@ -168,6 +168,12 @@ export const mockKnowledgeService = {
     return { ...mockSegments[idx] };
   },
 
+  async deleteSegment(kbId: number, segId: number): Promise<void> {
+    await delay(300);
+    const idx = mockSegments.findIndex(s => s.id === segId && s.knowledge_base_id === kbId);
+    if (idx !== -1) mockSegments.splice(idx, 1);
+  },
+
   async testRetrieval(kbId: number, params: { query: string; strategy?: string; top_k?: number; similarity_threshold?: number }): Promise<RetrievalTestResult[]> {
     await delay(800);
     const filtered = mockSegments.filter(s => s.knowledge_base_id === kbId);

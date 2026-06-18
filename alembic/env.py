@@ -20,6 +20,7 @@ import src.modules.model.model # noqa: F401
 import src.modules.prompt.model  # noqa: F401
 import src.modules.tool.model  # noqa: F401
 import src.modules.knowledge.model  # noqa: F401  每新增模块在此导入
+import src.modules.agent.model  # noqa: F401
 
 
 

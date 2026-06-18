@@ -101,7 +101,7 @@ export default function AgentDetail() {
             <CardTitle className="text-sm font-medium">成功率</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(agent.success_rate * 100).toFixed(1)}%</div>
+            <div className="text-2xl font-bold">{agent.success_rate.toFixed(1)}%</div>
           </CardContent>
         </Card>
         <Card>

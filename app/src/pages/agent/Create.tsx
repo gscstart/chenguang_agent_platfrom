@@ -11,6 +11,76 @@ import { Switch } from '@/components/ui/switch';
 import { agentService } from '@/services/agent';
 import type { AgentRead } from '@/services/agent';
 
+// UI 层的平铺配置类型
+interface FlatConfig {
+  temperature: number;
+  max_tokens: number;
+  top_p: number;
+  system_prompt: string;
+  rag_enabled: boolean;
+  retrieval_strategy: string;
+  top_k: number;
+  similarity_threshold: number;
+  tools_enabled: boolean;
+  welcome_message: string;
+  max_turns: number;
+  timeout: number;
+}
+
+const defaultFlatConfig: FlatConfig = {
+  temperature: 0.7,
+  max_tokens: 4096,
+  top_p: 1.0,
+  system_prompt: '',
+  rag_enabled: false,
+  retrieval_strategy: 'hybrid',
+  top_k: 5,
+  similarity_threshold: 0.7,
+  tools_enabled: false,
+  welcome_message: '',
+  max_turns: 20,
+  timeout: 30,
+};
+
+/** 后端嵌套 config → 前端平铺 config */
+function flattenConfig(config: Record<string, any> | null | undefined): FlatConfig {
+  if (!config) return { ...defaultFlatConfig };
+  return {
+    temperature: config.model?.temperature ?? defaultFlatConfig.temperature,
+    max_tokens: config.model?.maxTokens ?? defaultFlatConfig.max_tokens,
+    top_p: config.model?.topP ?? defaultFlatConfig.top_p,
+    system_prompt: config.prompt?.systemPrompt ?? defaultFlatConfig.system_prompt,
+    rag_enabled: config.rag?.enabled ?? defaultFlatConfig.rag_enabled,
+    retrieval_strategy: config.rag?.retrievalStrategy ?? defaultFlatConfig.retrieval_strategy,
+    top_k: config.rag?.topK ?? defaultFlatConfig.top_k,
+    similarity_threshold: config.rag?.similarityThreshold ?? defaultFlatConfig.similarity_threshold,
+    tools_enabled: config.tools?.enabled ?? defaultFlatConfig.tools_enabled,
+    welcome_message: config.advanced?.welcomeMessage ?? defaultFlatConfig.welcome_message,
+    max_turns: config.advanced?.maxTurns ?? defaultFlatConfig.max_turns,
+    timeout: config.advanced?.timeout ?? defaultFlatConfig.timeout,
+  };
+}
+
+/** 前端平铺 config → 后端嵌套 config */
+function buildConfig(flat: FlatConfig) {
+  return {
+    model: { temperature: flat.temperature, maxTokens: flat.max_tokens, topP: flat.top_p },
+    prompt: { systemPrompt: flat.system_prompt },
+    rag: {
+      enabled: flat.rag_enabled,
+      retrievalStrategy: flat.retrieval_strategy,
+      topK: flat.top_k,
+      similarityThreshold: flat.similarity_threshold,
+    },
+    tools: { enabled: flat.tools_enabled },
+    advanced: {
+      welcomeMessage: flat.welcome_message,
+      maxTurns: flat.max_turns,
+      timeout: flat.timeout,
+    },
+  };
+}
+
 export default function AgentCreate() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -18,22 +88,9 @@ export default function AgentCreate() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    type: 'conversational',
+    type: 'conversation',
     model_id: undefined as number | undefined,
-    config: {
-      temperature: 0.7,
-      max_tokens: 4096,
-      top_p: 1.0,
-      system_prompt: '',
-      rag_enabled: false,
-      retrieval_strategy: 'hybrid',
-      top_k: 5,
-      similarity_threshold: 0.7,
-      tools_enabled: false,
-      welcome_message: '',
-      max_turns: 20,
-      timeout: 30,
-    },
+    config: { ...defaultFlatConfig },
   });
 
   useEffect(() => { if (id) loadAgent(); }, [id]);
@@ -46,20 +103,7 @@ export default function AgentCreate() {
         description: agent.description ?? '',
         type: agent.type,
         model_id: agent.model_id ?? undefined,
-        config: {
-          temperature: agent.config?.temperature ?? 0.7,
-          max_tokens: agent.config?.max_tokens ?? 4096,
-          top_p: agent.config?.top_p ?? 1.0,
-          system_prompt: agent.config?.system_prompt ?? '',
-          rag_enabled: agent.config?.rag_enabled ?? false,
-          retrieval_strategy: agent.config?.retrieval_strategy ?? 'hybrid',
-          top_k: agent.config?.top_k ?? 5,
-          similarity_threshold: agent.config?.similarity_threshold ?? 0.7,
-          tools_enabled: agent.config?.tools_enabled ?? false,
-          welcome_message: agent.config?.welcome_message ?? '',
-          max_turns: agent.config?.max_turns ?? 20,
-          timeout: agent.config?.timeout ?? 30,
-        },
+        config: flattenConfig(agent.config),
       });
     } catch (error) {
       console.error('加载Agent失败:', error);
@@ -70,7 +114,7 @@ export default function AgentCreate() {
     e.preventDefault();
     try {
       setLoading(true);
-      const payload = { name: formData.name, description: formData.description, type: formData.type, model_id: formData.model_id, config: formData.config };
+      const payload = { name: formData.name, description: formData.description, type: formData.type, model_id: formData.model_id, config: buildConfig(formData.config) };
       if (id) { await agentService.updateAgent(Number(id), payload); }
       else { await agentService.createAgent(payload); }
       navigate('/agents');
@@ -135,9 +179,9 @@ export default function AgentCreate() {
                 <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="conversational">对话型</SelectItem>
+                    <SelectItem value="conversation">对话型</SelectItem>
                     <SelectItem value="tool">工具型</SelectItem>
-                    <SelectItem value="analytical">分析型</SelectItem>
+                    <SelectItem value="analysis">分析型</SelectItem>
                     <SelectItem value="creative">创作型</SelectItem>
                     <SelectItem value="workflow">工作流</SelectItem>
                   </SelectContent>

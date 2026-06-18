@@ -141,6 +141,10 @@ export const apiKnowledgeService = {
     return apiClient.put(`/knowledge-bases/${kbId}/segments/${segId}`, data);
   },
 
+  async deleteSegment(kbId: number, segId: number): Promise<void> {
+    return apiClient.delete(`/knowledge-bases/${kbId}/segments/${segId}`);
+  },
+
   async testRetrieval(kbId: number, params: { query: string; strategy?: string; top_k?: number; similarity_threshold?: number }): Promise<RetrievalTestResult[]> {
     return apiClient.post(`/knowledge-bases/${kbId}/retrieval-test`, params);
   },
