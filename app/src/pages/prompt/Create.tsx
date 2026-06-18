@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,7 +65,7 @@ export default function PromptCreate() {
     if (isEdit) loadPrompt();
   }, [id]);
 
-  const loadPrompt = async () => {
+  const loadPrompt = useCallback(async () => {
     try {
       setPageLoading(true);
       setError(null);
@@ -83,7 +83,7 @@ export default function PromptCreate() {
     } finally {
       setPageLoading(false);
     }
-  };
+  }, [id]);
 
   const handleSaveDraft = async () => {
     if (!formData.name.trim()) { setError('请填写名称'); return; }

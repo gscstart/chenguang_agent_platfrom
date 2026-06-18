@@ -68,11 +68,11 @@ export const mockPromptService = {
     ];
   },
 
-  async rollbackPrompt(id: number, version: string): Promise<PromptRead> {
+  async rollbackPrompt(id: number, versionId: number): Promise<PromptRead> {
     await delay(300);
     const prompt = mockPrompts.find(p => p.id === id);
     if (!prompt) throw new Error('Prompt not found');
-    prompt.version = version;
+    prompt.version = `v${versionId}.0`;
     return prompt;
   },
 };

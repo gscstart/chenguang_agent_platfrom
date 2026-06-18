@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Edit, Trash2, BookOpen } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, BookOpen, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { promptService } from '@/services/prompt';
 import type { PromptRead } from '@/services/prompt';
 import Pagination from '@/components/Pagination';
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 export default function PromptList() {
   const navigate = useNavigate();
@@ -20,32 +20,37 @@ export default function PromptList() {
   const [search, setSearch] = useState('');
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [promptToDelete, setPromptToDelete] = useState<number | null>(null);
+  const [promptToDelete, setPromptToDelete] = useState<PromptRead | null>(null);
 
   useEffect(() => { setPage(1); }, [search]);
   useEffect(() => { loadPrompts(); }, [page, search]);
 
-  const loadPrompts = async () => {
+  const loadPrompts = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await promptService.getPrompts({ page, page_size: PAGE_SIZE, keyword: search || undefined });
       setPrompts(res.items);
       setTotal(res.total);
-    } catch (error) {
-      console.error('加载Prompt列表失败:', error);
+    } catch (err: any) {
+      console.error('加载Prompt列表失败:', err);
+      setError(err.message || '加载列表失败');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, search]);
 
   const handleDelete = async () => {
     if (!promptToDelete) return;
     try {
-      await promptService.deletePrompt(promptToDelete);
+      setError(null);
+      await promptService.deletePrompt(promptToDelete.id);
       loadPrompts();
-    } catch (error) {
-      console.error('删除失败:', error);
+    } catch (err: any) {
+      console.error('删除失败:', err);
+      setError(err.message || '删除失败');
     } finally {
       setDeleteDialogOpen(false);
       setPromptToDelete(null);
@@ -54,10 +59,12 @@ export default function PromptList() {
 
   const handlePublish = async (id: number) => {
     try {
+      setError(null);
       await promptService.publishPrompt(id);
       loadPrompts();
-    } catch (error) {
-      console.error('发布失败:', error);
+    } catch (err: any) {
+      console.error('发布失败:', err);
+      setError(err.message || '发布失败');
     }
   };
 
@@ -85,6 +92,14 @@ export default function PromptList() {
           <Plus className="h-4 w-4 mr-2" />创建Prompt
         </Button>
       </div>
+
+      {/* 错误提示 */}
+      {error && (
+        <div className="px-4 py-3 bg-destructive/10 text-destructive text-sm rounded-md flex items-center justify-between">
+          <span>{error}</span>
+          <Button variant="ghost" size="sm" onClick={() => { setError(null); loadPrompts(); }}>重试</Button>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -127,7 +142,7 @@ export default function PromptList() {
               {loading ? (
                 <TableRow><TableCell colSpan={7} className="text-center">加载中...</TableCell></TableRow>
               ) : prompts.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center">暂无数据</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">暂无数据</TableCell></TableRow>
               ) : prompts.map((prompt) => (
                 <TableRow key={prompt.id}>
                   <TableCell>
@@ -160,7 +175,7 @@ export default function PromptList() {
                       <Button variant="ghost" size="sm" onClick={() => navigate(`/prompts/${prompt.id}/versions`)}>
                         版本
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => { setPromptToDelete(prompt.id); setDeleteDialogOpen(true); }}>
+                      <Button variant="ghost" size="sm" onClick={() => { setPromptToDelete(prompt); setDeleteDialogOpen(true); }}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
@@ -177,7 +192,9 @@ export default function PromptList() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除这个Prompt吗？此操作无法撤销。</AlertDialogDescription>
+            <AlertDialogDescription>
+              确定要删除 Prompt「{promptToDelete?.name}」吗？此操作无法撤销。
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>

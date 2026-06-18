@@ -68,7 +68,7 @@ export const apiPromptService = {
     return apiClient.get(`/prompts/${id}/versions`);
   },
 
-  async rollbackPrompt(id: number, version: string): Promise<PromptRead> {
-    return apiClient.post(`/prompts/${id}/rollback`, { version });
+  async rollbackPrompt(id: number, versionId: number): Promise<PromptRead> {
+    return apiClient.post(`/prompts/${id}/rollback`, { version_id: versionId });
   },
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,6 +15,7 @@ export default function PromptVersions() {
   const [loading, setLoading] = useState(true);
   const [rolling, setRolling] = useState<number | null>(null);
   const [selected, setSelected] = useState<PromptVersionRead | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) loadVersions();
@@ -23,23 +24,27 @@ export default function PromptVersions() {
   const loadVersions = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await promptService.getPromptVersions(Number(id));
       setVersions(data);
-    } catch (error) {
-      console.error('加载版本失败:', error);
+    } catch (err: any) {
+      console.error('加载版本失败:', err);
+      setError(err.message || '加载版本失败');
     } finally {
       setLoading(false);
     }
   };
 
   const handleRollback = async (version: string, versionId: number) => {
-    if (!confirm(`确认回滚到版本 ${version}？`)) return;
+    if (!confirm(`确认回滚到版本 ${version}？当前内容将被覆盖为该版本快照。`)) return;
     try {
       setRolling(versionId);
-      await promptService.rollbackPrompt(Number(id), version);
+      setError(null);
+      await promptService.rollbackPrompt(Number(id), versionId);
       await loadVersions();
-    } catch (error) {
-      console.error('回滚失败:', error);
+    } catch (err: any) {
+      console.error('回滚失败:', err);
+      setError(err.message || '回滚失败');
     } finally {
       setRolling(null);
     }
@@ -57,6 +62,13 @@ export default function PromptVersions() {
         </div>
       </div>
 
+      {/* 错误提示 */}
+      {error && (
+        <div className="px-4 py-3 bg-destructive/10 text-destructive text-sm rounded-md">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-6">
         <Card>
           <CardHeader><CardTitle>版本列表</CardTitle></CardHeader>
@@ -70,7 +82,9 @@ export default function PromptVersions() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>版本</TableHead>
+                    <TableHead>发布者</TableHead>
                     <TableHead>发布时间</TableHead>
+                    <TableHead>变更说明</TableHead>
                     <TableHead>状态</TableHead>
                     <TableHead>操作</TableHead>
                   </TableRow>
@@ -83,8 +97,12 @@ export default function PromptVersions() {
                       onClick={() => setSelected(v)}
                     >
                       <TableCell className="font-medium">{v.version}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{v.published_by || '-'}</TableCell>
                       <TableCell>
-                        {v.published_at ? new Date(v.published_at).toLocaleDateString('zh-CN') : '-'}
+                        {v.published_at ? new Date(v.published_at).toLocaleString('zh-CN') : '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                        {v.changelog || '-'}
                       </TableCell>
                       <TableCell>
                         {v.is_current ? <Badge>当前</Badge> : <Badge variant="outline">历史</Badge>}
