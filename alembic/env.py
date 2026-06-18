@@ -15,6 +15,7 @@ from src.core.base_model import Base
 import src.modules.permission.model  # noqa: F401
 import src.modules.role.model  # noqa: F401
 import src.modules.user.model  # noqa: F401
+import src.modules.provider.model  # noqa: F401
 
 
 

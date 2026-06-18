@@ -13,6 +13,7 @@ from src.modules.auth.api import router as auth_router
 from src.modules.permission.api import router as permission_router
 from src.modules.role.api import router as role_router
 from src.infra.minio_client import ensure_bucket_exists
+from src.modules.provider.api import router as provider_router
 
 # 使用上下文管理器感知项目生命周期
 # 项目关闭时执行销毁数据库连接池
@@ -27,7 +28,8 @@ async def lifespan(app: FastAPI):
         f"{settings.APP_NAME}Starting up... | 使用环境: {settings.APP_ENV}")
     # 确保MinIO桶存在
     try:
-        ensure_bucket_exists(settings.MINIO_BUCKET)
+        ensure_bucket_exists()
+        logger.info("MinIO bucket 已经创建")
     except Exception as e:
         logger.error(f"Failed to ensure bucket exists: {e}")
     yield
@@ -70,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(permission_router, prefix="/api/v1")
     app.include_router(role_router, prefix="/api/v1")
+    app.include_router(provider_router, prefix="/api/v1")
 
     return app
 
