@@ -7,6 +7,7 @@ from src.core.base_model import BaseModel
 class KnowledgeBase(BaseModel):
     """知识库表"""
     __tablename__ = "knowledge_bases"
+    __table_args__ = {"comment": "知识库表"}
 
     name: Mapped[str] = mapped_column(String(200), comment="知识库名称")
     description: Mapped[str | None] = mapped_column(
@@ -50,6 +51,7 @@ class KnowledgeBase(BaseModel):
 class Document(BaseModel):
     """文档表"""
     __tablename__ = "documents"
+    __table_args__ = {"comment": "文档表"}
 
     knowledge_base_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("knowledge_bases.id", ondelete="CASCADE"),
@@ -87,6 +89,7 @@ class Document(BaseModel):
 class Segment(BaseModel):
     """文档分段表"""
     __tablename__ = "segments"
+    __table_args__ = {"comment": "文档分段表"}
 
     knowledge_base_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("knowledge_bases.id", ondelete="CASCADE"),

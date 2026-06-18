@@ -1,4 +1,38 @@
 export interface Tool {
+  id: number
+  name: string
+  description: string | null
+  type: 'builtin' | 'http_api' | 'custom_function'
+  status: 'enabled' | 'disabled' | 'error'
+  config: Record<string, unknown> | null
+  function_definition: FunctionDefinition | null
+  call_count_7d: number
+  success_rate: number
+  avg_latency: number
+  created_by: string | null
+}
+
+export interface FunctionDefinition {
+  name: string
+  description: string
+  parameters: {
+    type: 'object'
+    properties: Record<string, {
+      type: string
+      description: string
+      enum?: string[]
+    }>
+    required: string[]
+  }
+}
+
+export interface ToolTestResult {
+  success: boolean
+  output: Record<string, unknown> | null
+  error: string | null
+  latency_ms: number
+}
+export interface Tool {
   id: string
   name: string
   description: string

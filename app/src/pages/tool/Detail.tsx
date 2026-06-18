@@ -82,7 +82,7 @@ export default function ToolDetail() {
         </Card>
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-sm font-medium">成功率</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold">{(tool.success_rate * 100).toFixed(1)}%</div></CardContent>
+          <CardContent><div className="text-2xl font-bold">{tool.success_rate.toFixed(1)}%</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-sm font-medium">平均延迟</CardTitle></CardHeader>

@@ -62,6 +62,7 @@ function App() {
           <Route path="tools" element={<ToolList />} />
           <Route path="tools/create" element={<ToolCreate />} />
           <Route path="tools/:id" element={<ToolDetail />} />
+          <Route path="tools/:id/edit" element={<ToolCreate />} />
           
           {/* Conversation Routes */}
           <Route path="conversations" element={<ConversationList />} />

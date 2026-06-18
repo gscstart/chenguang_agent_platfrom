@@ -11,6 +11,7 @@ role_permissions = Table(
     Base.metadata,
     Column("role_id", BigInteger, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
     Column("permission_id", BigInteger, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+    comment="角色权限关联表",
 )
 
 """
@@ -18,6 +19,7 @@ role_permissions = Table(
 """
 class Role(BaseModel):
     __tablename__ = "roles"
+    __table_args__ = {"comment": "角色表"}
     code: Mapped[str] = mapped_column(String(100), unique=True, comment="角色编码")
     name: Mapped[str] = mapped_column(String(100),  comment="角色名称")
     description: Mapped[str] = mapped_column(String(200), nullable=True, comment="角色描述")
@@ -36,4 +38,5 @@ user_roles = Table(
     Base.metadata,
     Column("user_id", BigInteger, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
     Column("role_id", BigInteger, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    comment="用户角色关联表",
 )

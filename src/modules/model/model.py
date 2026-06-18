@@ -6,6 +6,7 @@ from src.core.base_model import BaseModel
 class LLMModel(BaseModel):
     """大语言模型表"""
     __tablename__ = "models"
+    __table_args__ = {"comment": "大语言模型表"}
 
     name: Mapped[str] = mapped_column(String(100), comment="模型显示名称")
     model_id: Mapped[str] = mapped_column(

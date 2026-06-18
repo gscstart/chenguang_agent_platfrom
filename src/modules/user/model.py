@@ -13,6 +13,7 @@ from src.modules.role.model import user_roles
 class User(BaseModel):
     # 指定表名，类似 @Table(name = "users")
     __tablename__ = "users"
+    __table_args__ = {"comment": "用户表"}
 
     # Mapped[str]: SQLAlchemy 2.0 类型注解，声明字段类型为字符串
     # mapped_column(): 类似 @Column，配置列的约束和元信息

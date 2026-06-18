@@ -18,6 +18,8 @@ import src.modules.user.model  # noqa: F401
 import src.modules.provider.model  # noqa: F401
 import src.modules.model.model # noqa: F401
 import src.modules.prompt.model  # noqa: F401
+import src.modules.tool.model  # noqa: F401
+import src.modules.knowledge.model  # noqa: F401  每新增模块在此导入
 
 
 
@@ -64,6 +66,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_comments=True,
     )
 
     with context.begin_transaction():
@@ -71,7 +74,11 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_comments=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

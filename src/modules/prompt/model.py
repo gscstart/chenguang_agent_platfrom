@@ -7,6 +7,7 @@ from datetime import datetime
 class Prompt(BaseModel):
     """Prompt 模板表"""
     __tablename__ = "prompts"
+    __table_args__ = {"comment": "Prompt 模板表"}
 
     name: Mapped[str] = mapped_column(String(200), comment="Prompt 名称")
     description: Mapped[str | None] = mapped_column(
@@ -43,6 +44,7 @@ class Prompt(BaseModel):
 class PromptVersion(BaseModel):
     """Prompt 版本表"""
     __tablename__ = "prompt_versions"
+    __table_args__ = {"comment": "Prompt 版本历史表"}
 
     prompt_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("prompts.id", ondelete="CASCADE"),

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,14 +15,48 @@ interface ToolParameter {
 
 export default function ToolCreate() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEdit = Boolean(id);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', description: '', type: 'api',
+    name: '', description: '', type: 'http_api',
     config: { method: 'GET', url: '', headers: {} as Record<string, string>, timeout: 10000 },
     parameters: [] as ToolParameter[],
   });
   const [newHeader, setNewHeader] = useState({ key: '', value: '' });
   const [newParam, setNewParam] = useState<ToolParameter>({ name: '', type: 'string', required: true, description: '' });
+
+  // 编辑模式加载数据
+  useEffect(() => {
+    if (isEdit) loadTool();
+  }, [id]);
+
+  const loadTool = async () => {
+    try {
+      setFetching(true);
+      const tool = await toolService.getTool(Number(id));
+      // 从 function_definition 中解析参数
+      const params: ToolParameter[] = [];
+      if (tool.function_definition?.parameters?.properties) {
+        const required = tool.function_definition.parameters.required || [];
+        Object.entries(tool.function_definition.parameters.properties).forEach(([key, val]: [string, any]) => {
+          params.push({ name: key, type: val.type || 'string', required: required.includes(key), description: val.description || '' });
+        });
+      }
+      setFormData({
+        name: tool.name,
+        description: tool.description || '',
+        type: tool.type,
+        config: (tool.config as any) || { method: 'GET', url: '', headers: {}, timeout: 10000 },
+        parameters: params,
+      });
+    } catch (error) {
+      console.error('加载工具失败:', error);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +71,25 @@ export default function ToolCreate() {
           required: formData.parameters.filter((p) => p.required).map((p) => p.name),
         },
       };
-      await toolService.createTool({ name: formData.name, description: formData.description, type: formData.type, config: formData.config, function_definition });
+      if (isEdit) {
+        await toolService.updateTool(Number(id), {
+          name: formData.name,
+          description: formData.description,
+          config: formData.config,
+          function_definition,
+        });
+      } else {
+        await toolService.createTool({
+          name: formData.name,
+          description: formData.description,
+          type: formData.type,
+          config: formData.config,
+          function_definition,
+        });
+      }
       navigate('/tools');
     } catch (error) {
-      console.error('创建工具失败:', error);
+      console.error(`${isEdit ? '更新' : '创建'}工具失败:`, error);
     } finally {
       setLoading(false);
     }
@@ -65,6 +114,15 @@ export default function ToolCreate() {
     }
   };
 
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = { builtin: '内置', http_api: 'HTTP API', custom_function: '自定义函数' };
+    return labels[type] || type;
+  };
+
+  if (fetching) {
+    return <div className="p-6 text-center text-muted-foreground">加载中...</div>;
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
       {/* header */}
@@ -74,13 +132,13 @@ export default function ToolCreate() {
             <ArrowLeft className="h-4 w-4 mr-1" />返回
           </Button>
           <div>
-            <h1 className="text-xl font-bold">注册工具</h1>
-            <p className="text-xs text-muted-foreground">配置新的工具供 Agent 调用</p>
+            <h1 className="text-xl font-bold">{isEdit ? '编辑工具' : '注册工具'}</h1>
+            <p className="text-xs text-muted-foreground">{isEdit ? '修改工具配置信息' : '配置新的工具供 Agent 调用'}</p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => navigate('/tools')}>取消</Button>
-          <Button type="submit" disabled={loading}>{loading ? '创建中...' : '创建工具'}</Button>
+          <Button type="submit" disabled={loading}>{loading ? (isEdit ? '保存中...' : '创建中...') : (isEdit ? '保存修改' : '创建工具')}</Button>
         </div>
       </div>
 
@@ -101,14 +159,20 @@ export default function ToolCreate() {
               </div>
               <div className="space-y-1.5">
                 <Label>工具类型 *</Label>
-                <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="api">HTTP API</SelectItem>
-                    <SelectItem value="function">自定义函数</SelectItem>
-                    <SelectItem value="database">数据库</SelectItem>
-                  </SelectContent>
-                </Select>
+                {isEdit ? (
+                  <div className="flex items-center h-9 px-3 border rounded-md bg-muted text-sm">
+                    {getTypeLabel(formData.type)}
+                  </div>
+                ) : (
+                  <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="http_api">HTTP API</SelectItem>
+                      <SelectItem value="custom_function">自定义函数</SelectItem>
+                      <SelectItem value="builtin">内置工具</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -116,7 +180,7 @@ export default function ToolCreate() {
 
         {/* 右：API配置 + 参数 */}
         <div className="overflow-y-auto p-6 space-y-4">
-          {formData.type === 'api' && (
+          {formData.type === 'http_api' && (
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">HTTP API 配置</CardTitle></CardHeader>
               <CardContent className="space-y-4">
