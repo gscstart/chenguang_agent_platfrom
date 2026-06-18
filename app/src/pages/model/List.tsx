@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Settings, Trash2 } from 'lucide-react';
+import { Search, Plus, Settings, Trash2, Loader2, XCircle, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { modelService } from '@/services/model';
 import type { ModelRead } from '@/services/model';
 import Pagination from '@/components/Pagination';
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 export default function ModelList() {
   const navigate = useNavigate();
@@ -20,35 +20,44 @@ export default function ModelList() {
   const [search, setSearch] = useState('');
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [modelToDelete, setModelToDelete] = useState<number | null>(null);
+  const [modelToDelete, setModelToDelete] = useState<ModelRead | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { setPage(1); }, [search]);
   useEffect(() => { loadModels(); }, [page, search]);
 
-  const loadModels = async () => {
+  const loadModels = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await modelService.getModels({ page, page_size: PAGE_SIZE, keyword: search || undefined });
       setModels(res.items);
       setTotal(res.total);
-    } catch (error) {
-      console.error('加载模型列表失败:', error);
+    } catch (err: any) {
+      console.error('加载模型列表失败:', err);
+      setError(err.message || '加载模型列表失败');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, search]);
 
   const handleDelete = async () => {
     if (!modelToDelete) return;
     try {
-      await modelService.deleteModel(modelToDelete);
-      loadModels();
-    } catch (error) {
-      console.error('删除失败:', error);
+      setDeleting(true);
+      setError(null);
+      await modelService.deleteModel(modelToDelete.id);
+      await loadModels();
+    } catch (err: any) {
+      console.error('删除失败:', err);
+      setError(err.message || '删除失败');
     } finally {
       setDeleteDialogOpen(false);
       setModelToDelete(null);
+      setDeleting(false);
     }
   };
 
@@ -79,6 +88,15 @@ export default function ModelList() {
         </div>
       </div>
 
+      {/* 错误提示 */}
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm">
+          <XCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+          <button className="ml-auto text-red-400 hover:text-red-600" onClick={() => setError(null)}>×</button>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-sm font-medium">总模型数</CardTitle></CardHeader>
@@ -97,10 +115,11 @@ export default function ModelList() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
-            <div className="relative flex-1">
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="搜索模型名称..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+              <Input placeholder="搜索模型名称或 Model ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
             </div>
+            <span className="text-sm text-muted-foreground">共 {total} 个模型</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -114,21 +133,35 @@ export default function ModelList() {
                 <TableHead>上下文长度</TableHead>
                 <TableHead>价格(输入/输出)</TableHead>
                 <TableHead>状态</TableHead>
-                <TableHead>操作</TableHead>
+                <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} className="text-center">加载中...</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-muted-foreground" />
+                    <span className="text-muted-foreground">加载中...</span>
+                  </TableCell>
+                </TableRow>
               ) : models.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center">暂无数据</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    {search ? '未找到匹配的模型' : '暂无模型，点击右上角添加'}
+                  </TableCell>
+                </TableRow>
               ) : models.map((model) => (
                 <TableRow key={model.id}>
                   <TableCell className="font-medium">
-                    {model.name}
-                    {model.is_default && <Badge variant="outline" className="ml-2 text-xs">默认</Badge>}
+                    <div>
+                      {model.name}
+                      {model.is_default && <Badge variant="outline" className="ml-2 text-xs">默认</Badge>}
+                      {model.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{model.model_id}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm font-mono">{model.model_id}</TableCell>
                   <TableCell>{model.provider_name}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -146,11 +179,11 @@ export default function ModelList() {
                   </TableCell>
                   <TableCell>{getStatusBadge(model.status)}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/models/${model.id}/edit`)}>
-                        <Settings className="h-4 w-4" />
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/models/${model.id}/edit`)} title="编辑">
+                        <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => { setModelToDelete(model.id); setDeleteDialogOpen(true); }}>
+                      <Button variant="ghost" size="sm" onClick={() => { setModelToDelete(model); setDeleteDialogOpen(true); }} title="删除">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
@@ -163,15 +196,20 @@ export default function ModelList() {
         </CardContent>
       </Card>
 
+      {/* 删除确认对话框 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除这个模型吗？此操作无法撤销。</AlertDialogDescription>
+            <AlertDialogDescription>
+              确定要删除模型「{modelToDelete?.name}」({modelToDelete?.model_id}) 吗？此操作无法撤销。
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">删除</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-red-600 text-white hover:bg-red-700">
+              {deleting ? '删除中...' : '删除'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

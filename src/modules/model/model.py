@@ -15,7 +15,7 @@ class LLMModel(BaseModel):
     # ===== 外键关联 =====
     provider_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("model_providers.id", ondelete="CASCADE"),
+        ForeignKey("model_provider.id", ondelete="CASCADE"),
         comment="所属供应商ID"
     )
     # relationship 让你可以通过 model.provider 直接访问供应商对象

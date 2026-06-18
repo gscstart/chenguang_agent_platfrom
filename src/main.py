@@ -14,6 +14,7 @@ from src.modules.permission.api import router as permission_router
 from src.modules.role.api import router as role_router
 from src.infra.minio_client import ensure_bucket_exists
 from src.modules.provider.api import router as provider_router
+from src.modules.model.api import router as model_router
 
 # 使用上下文管理器感知项目生命周期
 # 项目关闭时执行销毁数据库连接池
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(permission_router, prefix="/api/v1")
     app.include_router(role_router, prefix="/api/v1")
     app.include_router(provider_router, prefix="/api/v1")
+    app.include_router(model_router, prefix="/api/v1")
 
     return app
 
