@@ -13,7 +13,7 @@ from src.modules.provider.repository import ProviderRepository
 _conversations: dict[str, list[dict[str, str]]] = {}
 
 # 压缩配置
-COMPRESS_THRESHOLD = 6  # 每 6 轮对话压缩一次
+COMPRESS_THRESHOLD = 20  # 每 6 轮对话压缩一次
 KEEP_RECENT = 4         # 保留最近 4 条消息
 
 
