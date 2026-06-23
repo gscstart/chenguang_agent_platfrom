@@ -31,12 +31,12 @@ class ProviderService:
         # 3. 保存到数据库
         return await self.repo.create(provider)
 
-    async def get_provider(self, provider_id: int) -> ModelProvider:
+    async def get_provider(self, provider_id: int) -> ProviderRead:
         """获取供应商详情"""
         provider = await self.repo.get_by_id(provider_id)
         if not provider:
             raise BizException(code=40002, message="供应商不存在")
-        return provider
+        return ProviderRead.model_validate(provider)
 
     async def list_providers(self, params: PageParams) -> PageResult[ProviderRead]:
         """分页查询供应商列表"""
@@ -54,7 +54,9 @@ class ProviderService:
 
     async def update_provider(self, provider_id: int, data: ProviderUpdate) -> ModelProvider:
         """更新供应商信息"""
-        provider = await self.get_provider(provider_id)
+        provider = await self.repo.get_by_id(provider_id)
+        if not provider:
+            raise BizException(code=40002, message="供应商不存在")
 
         # 只更新非 None 的字段
         if data.name is not None:
@@ -72,12 +74,16 @@ class ProviderService:
 
     async def delete_provider(self, provider_id: int) -> None:
         """删除供应商"""
-        provider = await self.get_provider(provider_id)
+        provider = await self.repo.get_by_id(provider_id)
+        if not provider:
+            raise BizException(code=40002, message="供应商不存在")
         await self.repo.delete(provider)
 
     async def test_connection(self, provider_id: int) -> dict:
         """测试供应商连接"""
-        provider = await self.get_provider(provider_id)
+        provider = await self.repo.get_by_id(provider_id)
+        if not provider:
+            raise BizException(code=40002, message="供应商不存在")
 
         # TODO: 实际实现时，根据 provider.type 调用对应的 SDK 测试连接
         # 这里先返回模拟结果，后续可替换为真实逻辑

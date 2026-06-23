@@ -6,7 +6,7 @@ import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import { AgentList, AgentCreate, AgentDetail, AgentTest, AgentVersions, AgentMonitor } from './pages/agent'
-import { ModelList, ModelProviders, ModelCreate } from './pages/model'
+import { ModelList, ModelProviders, ModelCreate, ModelTest } from './pages/model'
 import { PromptList, PromptCreate, PromptVersions } from './pages/prompt'
 import { KnowledgeList, KnowledgeCreate, KnowledgeDetail, KnowledgeDocuments, KnowledgeSegments, KnowledgeTest } from './pages/knowledge'
 import { ToolList, ToolCreate, ToolDetail } from './pages/tool'
@@ -42,6 +42,7 @@ function App() {
           <Route path="models" element={<ModelList />} />
           <Route path="models/create" element={<ModelCreate />} />
           <Route path="models/:id/edit" element={<ModelCreate />} />
+          <Route path="models/:id/test" element={<ModelTest />} />
           <Route path="models/providers" element={<ModelProviders />} />
           
           {/* Prompt Routes */}

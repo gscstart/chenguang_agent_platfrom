@@ -4,8 +4,10 @@ export interface ProviderRead {
   id: number;
   name: string;
   type: string;
+  api_type: string;
   status: string;
   endpoint: string;
+  api_key: string | null;
   description: string | null;
   model_count: number;
 }

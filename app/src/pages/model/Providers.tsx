@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Zap, Edit, Search, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Trash2, Zap, Edit, Search, Loader2, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { modelService } from '@/services/model';
 import type { ProviderRead } from '@/services/model';
 import Pagination from '@/components/Pagination';
@@ -26,7 +26,7 @@ const TYPE_LABEL_MAP: Record<string, string> = Object.fromEntries(
   PROVIDER_TYPES.map(t => [t.value, t.label])
 );
 
-const EMPTY_FORM = { name: '', type: 'openai', endpoint: '', api_key: '', description: '' };
+const EMPTY_FORM = { name: '', type: 'openai', api_type: 'chat', endpoint: '', api_key: '', description: '' };
 
 interface TestResult {
   id: number;
@@ -53,6 +53,7 @@ export default function ModelProviders() {
   const [testingId, setTestingId] = useState<number | null>(null);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   // 搜索变化时重置到第一页
   useEffect(() => { setPage(1); }, [keyword]);
@@ -119,12 +120,14 @@ export default function ModelProviders() {
     setForm({
       name: provider.name,
       type: provider.type,
+      api_type: provider.api_type || 'chat',
       endpoint: provider.endpoint,
-      api_key: '',
+      api_key: provider.api_key || '',
       description: provider.description || '',
     });
     setFormOpen(true);
     setError(null);
+    setShowApiKey(false);
   };
 
   const handleDelete = async () => {
@@ -189,6 +192,7 @@ export default function ModelProviders() {
           setForm(EMPTY_FORM);
           setFormOpen(true);
           setError(null);
+          setShowApiKey(false);
         }}>
           <Plus className="mr-2 h-4 w-4" />添加供应商
         </Button>
@@ -353,6 +357,18 @@ export default function ModelProviders() {
                   ))}
                 </select>
               </div>
+              <div className="space-y-2">
+                <Label>API 类型</Label>
+                <select
+                  className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                  value={form.api_type}
+                  onChange={e => setForm({ ...form, api_type: e.target.value })}
+                >
+                  <option value="chat">Chat Completions</option>
+                  <option value="responses">Responses</option>
+                </select>
+                <p className="text-xs text-muted-foreground">大多数供应商选择 Chat Completions</p>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>
@@ -369,12 +385,27 @@ export default function ModelProviders() {
                 API Key
                 {editingProvider && <span className="text-xs text-muted-foreground ml-2">留空则不修改</span>}
               </Label>
-              <Input
-                type="password"
-                value={form.api_key}
-                onChange={e => setForm({ ...form, api_key: e.target.value })}
-                placeholder="sk-..."
-              />
+              <div className="relative">
+                <Input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={form.api_key}
+                  onChange={e => setForm({ ...form, api_key: e.target.value })}
+                  placeholder="sk-..."
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  title={showApiKey ? '隐藏 API Key' : '显示 API Key'}
+                >
+                  {showApiKey
+                    ? <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    : <Eye className="h-4 w-4 text-muted-foreground" />}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>描述</Label>

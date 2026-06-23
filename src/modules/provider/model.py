@@ -10,6 +10,9 @@ class ModelProvider(BaseModel):
     __table_args__ = {"comment": "模型供应商表"}
     name: Mapped[str] = mapped_column(String(64), comment="供应商名称")
     type: Mapped[str] = mapped_column(String(50), comment="供应商类型: openai/anthropic/aliyun/azure/local/custom")
+    api_type: Mapped[str] = mapped_column(
+        String(20), default="chat", comment="API类型: chat/responses"
+    )
     status: Mapped[str] = mapped_column(String(50), default= "disconnected", comment="连接状态: connected/disconnected/error")
     endpoint: Mapped[str] = mapped_column(String(500), comment="API端点地址")
     api_key: Mapped[str | None] = mapped_column(

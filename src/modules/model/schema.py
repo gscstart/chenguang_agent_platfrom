@@ -1,6 +1,13 @@
 from pydantic import BaseModel
 
 
+class ModelChatRequest(BaseModel):
+    model_id: int
+    message: str                           # 当前用户消息
+    conversation_id: str | None = None     # 会话 ID，为空则新建会话
+    stream: bool = True
+
+
 class ModelCreate(BaseModel):
     name: str
     model_id: str
