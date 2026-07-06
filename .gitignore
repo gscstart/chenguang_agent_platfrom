@@ -114,3 +114,4 @@ alembic/versions/__pycache__/
 temp/
 tmp/
 .qoder
+.omc

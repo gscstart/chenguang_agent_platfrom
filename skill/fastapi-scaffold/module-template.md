@@ -1,190 +1,243 @@
-# 业务模块模板
+# 启动用示例模块模板（精简版）
 
-以 `user` 模块为参考，新建模块时将 `{name}` 替换为模块名，`{Name}` 替换为驼峰命名。
+新项目脚手架用来 seed 第一个示例模块（user）。**进阶写法（分页、`_to_read`、部分更新、错误码段、关联、SSE、后台任务等）见 `fastapi-module/module-template.md` 和 `fastapi-module/patterns.md`。**
 
-## 1. model.py — ORM 实体
+占位符：`{name}`=user，`{Name}`=User，`{names}`=users。
+
+## 1. model.py
 
 ```python
-from sqlalchemy import String
+from sqlalchemy import String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from src.core.base_model import BaseModel
 
 
-class {Name}(BaseModel):
-    __tablename__ = "{names}"
+class User(BaseModel):
+    """用户表"""
+    __tablename__ = "users"
+    __table_args__ = {"comment": "用户表"}
 
-    # 根据业务定义字段，以下为示例
-    username: Mapped[str] = mapped_column(
-        String(50), unique=True, index=True, comment="用户名")
-    email: Mapped[str] = mapped_column(
-        String(100), unique=True, index=True, comment="邮箱")
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True, comment="用户名")
+    email: Mapped[str] = mapped_column(String(100), unique=True, index=True, comment="邮箱")
     hashed_password: Mapped[str] = mapped_column(String(255), comment="密码哈希")
-    is_active: Mapped[bool] = mapped_column(default=True, comment="是否启用")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="是否启用")
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否超管")
 ```
 
-## 2. schema.py — DTO 请求/响应
+## 2. schema.py
 
 ```python
 from pydantic import BaseModel, EmailStr
 
 
-class {Name}Create(BaseModel):
-    """创建请求 DTO —— 只包含客户端需要传入的字段"""
+class UserCreate(BaseModel):
+    """创建请求"""
     username: str
     email: EmailStr
     password: str
 
 
-class {Name}Read(BaseModel):
-    """响应 DTO —— 只暴露允许客户端看到的字段"""
+class UserUpdate(BaseModel):
+    """更新请求 —— 全可选"""
+    username: str | None = None
+    email: EmailStr | None = None
+    is_active: bool | None = None
+
+
+class UserRead(BaseModel):
+    """响应 —— 不暴露 password"""
     id: int
     username: str
     email: str
     is_active: bool
+    is_superuser: bool
 
     model_config = {"from_attributes": True}
 ```
 
-## 3. repository.py — 数据访问层
+## 3. repository.py
 
 ```python
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.base_repository import BaseRepository
-from src.modules.{name}.model import {Name}
+from src.modules.user.model import User
 
 
-class {Name}Repository(BaseRepository[{Name}]):
+class UserRepository(BaseRepository[User]):
+    SEARCH_FIELDS = ["username", "email"]
+
     def __init__(self, db: AsyncSession):
-        super().__init__({Name}, db)
+        super().__init__(User, db)
 
-    # 基础 CRUD 已由父类提供：get_by_id / get_all / create / update / delete
-    # 只需补充业务特有的查询方法
-
-    async def get_by_username(self, username: str) -> {Name} | None:
-        stmt = select({Name}).where({Name}.username == username)
+    async def get_by_username(self, username: str) -> User | None:
+        stmt = select(User).where(User.username == username)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_email(self, email: str) -> {Name} | None:
-        stmt = select({Name}).where({Name}.email == email)
+    async def get_by_email(self, email: str) -> User | None:
+        stmt = select(User).where(User.email == email)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def search_page(self, offset, limit, keyword):
+        return await self.get_page(
+            offset=offset, limit=limit, keyword=keyword, search_fields=self.SEARCH_FIELDS,
+        )
 ```
 
-## 4. service.py — 业务逻辑层
+## 4. service.py
 
 ```python
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.exceptions import BizException
-from src.modules.{name}.model import {Name}
-from src.modules.{name}.schema import {Name}Create
-from src.modules.{name}.repository import {Name}Repository
+from src.core.base_schema import PageResult
+from src.core.deps import PageParams
+from src.utils.password_utils import hash_password
+from src.modules.user.model import User
+from src.modules.user.schema import UserCreate, UserUpdate, UserRead
 
 
-class {Name}Service:
+class UserService:
     def __init__(self, db: AsyncSession):
-        self.repo = {Name}Repository(db)
+        self.repo = UserRepository(db)
 
-    async def create_{name}(self, data: {Name}Create) -> {Name}:
-        # 业务校验
+    async def create_user(self, data: UserCreate) -> UserRead:
         if await self.repo.get_by_username(data.username):
-            raise BizException(code=400, message="用户名已存在")
+            raise BizException(code=40001, message="用户名已存在")
         if await self.repo.get_by_email(data.email):
-            raise BizException(code=400, message="邮箱已存在")
+            raise BizException(code=40001, message="邮箱已存在")
 
-        # 构造实体并持久化
-        obj = {Name}(
+        user = User(
             username=data.username,
             email=data.email,
-            hashed_password=data.password,  # 生产环境用 bcrypt 加密
+            hashed_password=hash_password(data.password),  # bcrypt 加密
         )
-        return await self.repo.create(obj)
+        user = await self.repo.create(user)
+        return UserRead.model_validate(user)
 
-    async def get_{name}(self, id: int) -> {Name}:
-        obj = await self.repo.get_by_id(id)
-        if not obj:
-            raise BizException(code=404, message="记录不存在")
-        return obj
+    async def get_user(self, user_id: int) -> UserRead:
+        user = await self.repo.get_by_id(user_id)
+        if not user:
+            raise BizException(code=40002, message="用户不存在")
+        return UserRead.model_validate(user)
 
-    async def list_{names}(self, offset: int = 0, limit: int = 100):
-        return await self.repo.get_all(offset=offset, limit=limit)
+    async def list_users(self, params: PageParams) -> PageResult[UserRead]:
+        items, total = await self.repo.search_page(
+            offset=params.offset, limit=params.page_size, keyword=params.keyword,
+        )
+        return PageResult(
+            items=[UserRead.model_validate(u) for u in items],
+            total=total, page=params.page, page_size=params.page_size,
+        )
+
+    async def update_user(self, user_id: int, data: UserUpdate) -> UserRead:
+        user = await self.repo.get_by_id(user_id)
+        if not user:
+            raise BizException(code=40002, message="用户不存在")
+        if data.username is not None:
+            user.username = data.username
+        if data.email is not None:
+            user.email = data.email
+        if data.is_active is not None:
+            user.is_active = data.is_active
+        user = await self.repo.update(user)
+        return UserRead.model_validate(user)
+
+    async def delete_user(self, user_id: int) -> None:
+        user = await self.repo.get_by_id(user_id)
+        if not user:
+            raise BizException(code=40002, message="用户不存在")
+        await self.repo.delete(user)
 ```
 
-## 5. api.py — 接口路由
+> 注：上面省略了 `from src.modules.user.repository import UserRepository`，实际文件需补上 import。
+
+## 5. api.py
 
 ```python
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.infra.database import get_db
-from src.core.base_schema import ResponseSchema
-from src.modules.{name}.schema import {Name}Create, {Name}Read
-from src.modules.{name}.service import {Name}Service
+from src.core.base_schema import ResponseSchema, PageResult
+from src.core.deps import PageParams
+from src.modules.user.schema import UserCreate, UserUpdate, UserRead
+from src.modules.user.service import UserService
 
-router = APIRouter(prefix="/{names}", tags=["{Name}"])
-
-
-def get_{name}_service(db: AsyncSession = Depends(get_db)) -> {Name}Service:
-    return {Name}Service(db)
+router = APIRouter(prefix="/users", tags=["用户"])
 
 
-@router.post("", response_model=ResponseSchema[{Name}Read])
-async def create_{name}(
-    data: {Name}Create,
-    svc: {Name}Service = Depends(get_{name}_service),
+def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
+    return UserService(db)
+
+
+@router.post("", response_model=ResponseSchema[UserRead], summary="创建用户")
+async def create_user(
+    data: UserCreate,
+    svc: UserService = Depends(get_user_service),
 ):
-    obj = await svc.create_{name}(data)
-    return ResponseSchema(data={Name}Read.model_validate(obj))
+    return ResponseSchema(data=await svc.create_user(data))
 
 
-@router.get("/{id}", response_model=ResponseSchema[{Name}Read])
-async def get_{name}(
-    id: int,
-    svc: {Name}Service = Depends(get_{name}_service),
+@router.get("", response_model=ResponseSchema[PageResult[UserRead]], summary="用户列表")
+async def list_users(
+    params: PageParams = Depends(),
+    svc: UserService = Depends(get_user_service),
 ):
-    obj = await svc.get_{name}(id)
-    return ResponseSchema(data={Name}Read.model_validate(obj))
+    return ResponseSchema(data=await svc.list_users(params))
 
 
-@router.get("", response_model=ResponseSchema[list[{Name}Read]])
-async def list_{names}(
-    offset: int = 0,
-    limit: int = 100,
-    svc: {Name}Service = Depends(get_{name}_service),
+@router.get("/{user_id}", response_model=ResponseSchema[UserRead], summary="用户详情")
+async def get_user(
+    user_id: int,
+    svc: UserService = Depends(get_user_service),
 ):
-    items = await svc.list_{names}(offset, limit)
-    return ResponseSchema(data=[{Name}Read.model_validate(i) for i in items])
+    return ResponseSchema(data=await svc.get_user(user_id))
+
+
+@router.put("/{user_id}", response_model=ResponseSchema[UserRead], summary="更新用户")
+async def update_user(
+    user_id: int,
+    data: UserUpdate,
+    svc: UserService = Depends(get_user_service),
+):
+    return ResponseSchema(data=await svc.update_user(user_id, data))
+
+
+@router.delete("/{user_id}", response_model=ResponseSchema, summary="删除用户")
+async def delete_user(
+    user_id: int,
+    svc: UserService = Depends(get_user_service),
+):
+    await svc.delete_user(user_id)
+    return ResponseSchema(message="删除成功")
 ```
 
-## 注册新模块
+## 注册模块
 
-### main.py 中添加路由
+### main.py
 
 ```python
-from src.modules.{name}.api import router as {name}_router
-
-# 在 create_app() 中
-app.include_router({name}_router, prefix="/api/v1")
+from src.modules.user.api import router as user_router
+# 在 create_app() 中：
+app.include_router(user_router, prefix="/api/v1")
 ```
 
-### alembic/env.py 中导入 model
+### alembic/env.py
 
 ```python
-# 在 Base 导入之后添加
-from src.modules.{name}.model import {Name}  # noqa: F401
+import src.modules.user.model  # noqa: F401
 ```
 
-## 命名规范速查
+### 生成迁移
 
-| 场景 | 命名规则 | 示例（以 order 模块为例） |
-|------|---------|------------------------|
-| 目录名 | 小写单数 | `modules/order/` |
-| 表名 | 小写复数 | `__tablename__ = "orders"` |
-| Model 类 | 大驼峰单数 | `class Order(BaseModel)` |
-| DTO 请求 | 大驼峰+Create | `OrderCreate` |
-| DTO 响应 | 大驼峰+Read | `OrderRead` |
-| Repository | 大驼峰+Repository | `OrderRepository` |
-| Service | 大驼峰+Service | `OrderService` |
-| Router prefix | 小写复数 | `prefix="/orders"` |
-| Router tag | 大驼峰单数 | `tags=["Order"]` |
-| 函数名 | 小写+下划线 | `create_order`, `list_orders` |
+```bash
+alembic revision --autogenerate -m "新增users表"
+alembic upgrade head
+```
+
+---
+
+## 后续：在已有项目里加模块/功能
+
+本模板仅用于新项目 seed。在 `chenguang_agent_platfrom` 这类已有项目内开发时，完整约定（错误码段分配、`_to_read` 计算字段、多表关联、SSE 流式、后台任务、MinIO 上传、版本管理等）见 **`fastapi-module`** Skill。
